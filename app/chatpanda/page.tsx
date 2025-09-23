@@ -1,11 +1,30 @@
-import { currentUser } from "@clerk/nextjs/server";
-export default async function ChatPanda() {
-  const user = await currentUser();
-  const name = user?.firstName ?? user?.username ?? "Nutzer";
+import { createClient } from '@supabase/supabase-js';
+import type { Message } from '@/types/message';
+import ChatFeed from '@/components/chatpanda/ChatFeed';
+import ChatInput from '@/components/chatpanda/ChatInput';
+
+export const dynamic = 'force-dynamic'; // damit die Seite nicht statisch gecacht wird
+
+export default async function Page() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  const { data } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('room', 'global')
+    .order('created_at', { ascending: true })
+    .limit(100);
+
+  const initial = (data ?? []) as Message[];
+
   return (
-    <main className="max-w-xl mx-auto p-8 space-y-4">
-      <h1 className="text-2xl font-bold">Willkommen im ChatPanda, {name} 🐼</h1>
-      <p>Hier bauen wir gleich den Realtime-Chat ein.</p>
+    <main className="mx-auto max-w-3xl px-4 py-8">
+      <h1 className="mb-4 text-2xl font-semibold">ChatPanda – Global</h1>
+      <ChatFeed initial={initial} />
+      <ChatInput />
     </main>
   );
 }
