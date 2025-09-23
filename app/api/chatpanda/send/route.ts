@@ -1,36 +1,47 @@
-import { NextRequest } from 'next/server';
-import { auth, currentUser } from '@clerk/nextjs/server';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+// app/api/chatpanda/send/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
+  // Clerk: SERVER-VARIANTE verwenden
   const { userId } = auth();
-  if (!userId) return new Response('Unauthorized', { status: 401 });
-
-  const body = await req.json().catch(() => null) as { content?: string } | null;
-  const content = (body?.content ?? '').trim();
-  if (!content) return new Response('Missing content', { status: 400 });
-
-  // Max-Länge ist in der DB sowieso begrenzt (CHECK auf 2000),
-  // hier trotzdem sanft cutten:
-  const safeContent = content.slice(0, 2000);
-
-  const user = await currentUser();
-  const username =
-    user?.username ||
-    [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
-    'User';
-
-  const { error } = await supabaseAdmin.from('messages').insert({
-    room: 'global',
-    user_id: userId,
-    username,
-    content: safeContent,
-  });
-
-  if (error) {
-    console.error(error);
-    return new Response('DB error', { status: 500 });
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return new Response('OK', { status: 201 });
+  // Body lesen und validieren (sehr basic)
+  const body = await req.json().catch(() => null) as
+    | { content?: string; room?: string }
+    | null;
+
+  const content = (body?.content ?? "").trim();
+  const room = (body?.room ?? "global").trim();
+
+  if (!content) {
+    return NextResponse.json({ error: "Content required" }, { status: 400 });
+  }
+  if (content.length > 2000) {
+    return NextResponse.json({ error: "Content too long" }, { status: 400 });
+  }
+
+  // Optional: Username aus Clerk ziehen (fallbacks)
+  const cu = await currentUser().catch(() => null);
+  const username =
+    cu?.username ||
+    [cu?.firstName, cu?.lastName].filter(Boolean).join(" ").trim() ||
+    cu?.emailAddresses?.[0]?.emailAddress ||
+    "User";
+
+  // Insert mit Service Role (Server only!)
+  const { error } = await supabaseAdmin
+    .from("messages")
+    .insert([{ room, user_id: userId, username, content }]);
+
+  if (error) {
+    console.error("Insert failed:", error);
+    return NextResponse.json({ error: "DB insert failed" }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
 }
