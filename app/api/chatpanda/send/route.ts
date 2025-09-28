@@ -41,10 +41,10 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err) {
     console.error("🔥 Server Error:", err);
     return NextResponse.json(
-      { error: err.message || "Interner Serverfehler." },
+      { error: (err as Error).message || "Interner Serverfehler." },
       { status: 500 }
     );
   }
