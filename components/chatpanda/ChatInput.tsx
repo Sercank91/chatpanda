@@ -24,17 +24,19 @@ export default function ChatInput({ room }: { room: string }) {
         }),
       });
 
+      // Versuche JSON zu parsen, auch wenn Fehler kommt
+      const data = await res.json().catch(() => ({}));
+      console.log("API Response:", res.status, data);
+
       if (!res.ok) {
-        const error = await res.json();
-        console.error("Send error:", error);
-        alert(error.error || "Nachricht konnte nicht gesendet werden.");
+        alert(data.error || "Fehler beim Senden der Nachricht.");
         return;
       }
 
       setMessage(""); // Eingabefeld leeren
     } catch (err) {
       console.error("Network error:", err);
-      alert("Netzwerkfehler beim Senden.");
+      alert("Netzwerkfehler beim Senden – bitte Konsole (F12) prüfen.");
     }
   }
 
