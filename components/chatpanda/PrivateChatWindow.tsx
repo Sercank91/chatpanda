@@ -27,7 +27,7 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
     }
   }, []);
 
-  // 🔹 Realtime Subscription
+  // 🔹 Realtime Subscription (beide Richtungen!)
   useEffect(() => {
     if (!myNickname || !user) return;
 
@@ -39,7 +39,7 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
           event: "INSERT",
           schema: "public",
           table: "private_messages",
-          filter: `to_nickname=eq.${myNickname},from_nickname=eq.${user}`,
+          filter: `or(and(to_nickname.eq.${myNickname},from_nickname.eq.${user}),and(to_nickname.eq.${user},from_nickname.eq.${myNickname}))`
         },
         (payload) => {
           const m = payload.new as {
@@ -91,8 +91,8 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
         height: 350,
       }}
       bounds="window"
-      dragHandleClassName="header" // ✅ Nur über Header verschiebbar
-      enableResizing={false} // ✅ Resize deaktiviert, nur verschieben erlaubt
+      dragHandleClassName="header"
+      enableResizing={false}
     >
       <div className="bg-gray-900 text-white rounded-lg shadow-xl border border-gray-700 h-full flex flex-col">
         {/* Header */}
