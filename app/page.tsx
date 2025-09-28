@@ -5,18 +5,42 @@ import { useRouter } from "next/navigation";
 export default function HomePage() {
   const [nickname, setNickname] = useState("");
   const [gender, setGender] = useState("");
+  const [error, setError] = useState(""); // 🔹 Neu: Fehlermeldung
   const router = useRouter();
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!nickname.trim() || !gender) return;
+    setError("");
 
-    // Nickname + Gender im Browser speichern
-    localStorage.setItem("chatpanda_nickname", nickname.trim());
-    localStorage.setItem("chatpanda_gender", gender);
+    if (!nickname.trim() || !gender) {
+      setError("Bitte Nickname und Geschlecht auswählen.");
+      return;
+    }
 
-    // Weiterleiten zum Chat (ohne ?nickname=... in URL)
-    router.push("/chatpanda");
+    try {
+      // 🔹 Nickname-Check API
+      const res = await fetch("/api/chatpanda/nickname", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname: nickname.trim(), gender }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Nickname konnte nicht reserviert werden.");
+        return;
+      }
+
+      // Nickname + Gender im Browser speichern
+      localStorage.setItem("chatpanda_nickname", nickname.trim());
+      localStorage.setItem("chatpanda_gender", gender);
+
+      // Weiterleiten zum Chat
+      router.push("/chatpanda");
+    } catch (err) {
+      setError("Serverfehler – bitte später erneut versuchen.");
+    }
   }
 
   return (
@@ -70,6 +94,8 @@ export default function HomePage() {
               Divers
             </label>
           </div>
+
+          {error && <p className="text-red-400 text-sm">{error}</p>} {/* 🔹 Neu */}
 
           <button
             type="submit"
