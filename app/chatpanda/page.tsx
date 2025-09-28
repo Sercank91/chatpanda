@@ -16,7 +16,7 @@ export default function ChatpandaPage() {
   if (!nickname || !gender) {
     return (
       <div className="flex min-h-screen items-center justify-center text-red-500">
-        Kein Nickname gefunden. Bitte gehe zurück zur Startseite.
+        Kein Nickname gefunden! Bitte gehe zurück zur Startseite.
       </div>
     );
   }
