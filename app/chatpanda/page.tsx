@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import ChatFeed from "@/components/chatpanda/ChatFeed";
 import ChatInput from "@/components/chatpanda/ChatInput";
-import ChatRoom from "./ChatRoom"; // 🔹 Erweiterung
+import ChatRoom from "./ChatRoom"; // 🔹 Online-User
 
 export default function ChatpandaPage() {
   const [nickname, setNickname] = useState<string | null>(null);
@@ -22,19 +22,31 @@ export default function ChatpandaPage() {
   }
 
   return (
-    <div className="max-w-xl mx-auto p-4 space-y-4">
-      <h1 className="text-xl font-semibold">
-        Willkommen, {nickname} ({gender})
-      </h1>
+    <div className="flex h-[calc(100vh-64px)]">
+      {/* Hauptbereich: Chat */}
+      <div className="flex-1 flex flex-col border-r border-gray-800">
+        {/* Begrüßung oben */}
+        <div className="p-4 border-b border-gray-800 bg-gray-950">
+          <h1 className="text-lg font-semibold">
+            Willkommen, {nickname} ({gender})
+          </h1>
+        </div>
 
-      {/* Online-Liste */}
-      <ChatRoom room="global" /> {/* 🔹 Erweiterung */}
+        {/* Nachrichtenliste scrollt */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <ChatFeed />
+        </div>
 
-      {/* Nachrichtenliste */}
-      <ChatFeed />
+        {/* Eingabefeld fixiert unten */}
+        <div className="border-t border-gray-800 bg-gray-950 p-3">
+          <ChatInput room="global" />
+        </div>
+      </div>
 
-      {/* Eingabe */}
-      <ChatInput room="global" />
+      {/* Rechte Sidebar: Online-User */}
+      <aside className="w-64 bg-gray-950 p-4 overflow-y-auto border-l border-gray-800">
+        <ChatRoom room="global" />
+      </aside>
     </div>
   );
 }
