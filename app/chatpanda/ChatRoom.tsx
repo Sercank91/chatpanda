@@ -10,7 +10,14 @@ type OnlineUser = {
   online_at: string;
 };
 
-export default function ChatRoom({ room }: { room: string }) {
+// 🔹 Props erweitert um onUserClick
+export default function ChatRoom({
+  room,
+  onUserClick,
+}: {
+  room: string;
+  onUserClick?: (user: string, pos: { x: number; y: number }) => void;
+}) {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
 
   useEffect(() => {
@@ -70,14 +77,26 @@ export default function ChatRoom({ room }: { room: string }) {
   }, [room]);
 
   return (
-    <div className="bg-gray-900 p-4 rounded-lg">
+    <div className="bg-gray-900 p-4 rounded-lg relative">
       <h2 className="text-lg font-bold mb-2">👥 Online im Raum: {room}</h2>
       {onlineUsers.length === 0 ? (
         <p className="text-gray-400 text-sm">Niemand ist online.</p>
       ) : (
         <ul className="space-y-1">
           {onlineUsers.map((user, i) => (
-            <li key={i} className="text-gray-300">
+            <li
+              key={i}
+              className="text-gray-300 cursor-pointer hover:text-blue-400"
+              onClick={(e) => {
+                e.preventDefault();
+                if (onUserClick) {
+                  onUserClick(user.nickname, {
+                    x: e.clientX,
+                    y: e.clientY,
+                  });
+                }
+              }}
+            >
               <span className="font-semibold">{user.nickname}</span>{" "}
               <span className="text-gray-500 text-sm">({user.gender})</span>
             </li>
