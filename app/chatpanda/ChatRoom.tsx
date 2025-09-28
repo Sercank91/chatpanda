@@ -20,19 +20,7 @@ export default function ChatRoom({ room }: { room: string }) {
       config: { presence: { key: nickname } },
     });
 
-    channel.subscribe((status) => {
-      console.log("Channel Status:", status);
-      if (status === "SUBSCRIBED") {
-        channel.track({
-          nickname,
-          gender,
-          online_at: new Date().toISOString(),
-        });
-        console.log("Tracking gestartet:", nickname);
-      }
-    });
-
-    // Logs zur Kontrolle
+    // Events VOR dem Subscribe registrieren
     channel.on("presence", { event: "join" }, ({ key, newPresences }) => {
       console.log("JOIN:", key, newPresences);
     });
@@ -46,10 +34,8 @@ export default function ChatRoom({ room }: { room: string }) {
       console.log("Presence raw state:", state);
 
       const users: OnlineUser[] = [];
-
       Object.values(state).forEach((arr) => {
-        // 👉 WICHTIG: genau so wie früher, nur Typ sicher
-        (arr as unknown as Array<Partial<OnlineUser>>).forEach((user) => {
+        (arr as Array<any>).forEach((user) => {
           if (user.nickname) {
             users.push({
               nickname: user.nickname,
@@ -62,6 +48,19 @@ export default function ChatRoom({ room }: { room: string }) {
 
       console.log("Online Users parsed:", users);
       setOnlineUsers(users);
+    });
+
+    // Jetzt erst subscriben
+    channel.subscribe((status) => {
+      console.log("Channel Status:", status);
+      if (status === "SUBSCRIBED") {
+        channel.track({
+          nickname,
+          gender,
+          online_at: new Date().toISOString(),
+        });
+        console.log("Tracking gestartet:", nickname);
+      }
     });
 
     return () => {
