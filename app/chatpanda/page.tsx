@@ -1,10 +1,9 @@
-// app/chatpanda/page.tsx
 "use client";
 import { useEffect, useState, useRef } from "react";
 import ChatFeed from "@/components/chatpanda/ChatFeed";
 import ChatInput from "@/components/chatpanda/ChatInput";
 import ChatRoom from "./ChatRoom";
-import PrivateChatWindow from "@/components/chatpanda/PrivateChatWindow"; // 🔹 NEU
+import PrivateChatWindow from "@/components/chatpanda/PrivateChatWindow";
 
 export default function ChatpandaPage() {
   const [nickname, setNickname] = useState<string | null>(null);
@@ -140,7 +139,7 @@ export default function ChatpandaPage() {
         </div>
       )}
 
-      {/* Offene Privatchats */}
+      {/* Offene Privatchats → mehrere Fenster möglich */}
       {privateChats.map((user) => (
         <PrivateChatWindow
           key={user}
