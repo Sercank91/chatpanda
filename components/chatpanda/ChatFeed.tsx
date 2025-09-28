@@ -18,7 +18,7 @@ export default function ChatFeed({ initial = [] }: Props) {
         { event: "INSERT", schema: "public", table: "messages", filter: "room=eq.global" },
         (payload) => {
           const m = payload.new as Message;
-          setMessages((prev) => [m, ...prev]); // neueste oben
+          setMessages((prev) => [...prev, m]); // neueste unten
         }
       )
       .subscribe();
