@@ -3,14 +3,14 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
-  const { userId } = auth();
+  const { userId } = await auth(); // ✅ await hinzufügen
   const body = await req.json().catch(() => null);
 
   if (!body?.content || !body?.room) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  // Falls Clerk-User
+  // Falls Clerk-User eingeloggt
   if (userId) {
     const user = await currentUser();
     const username =
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       content: body.content,
       user_id: userId,
       username,
-      gender: body.gender || null, // optional speichern
+      gender: body.gender || null,
     });
 
     if (error) {
