@@ -54,17 +54,19 @@ export default function ChatRoom({ room }: { room: string }) {
     });
 
     // 🔹 KORRIGIERT: subscribe + track
-    channel.subscribe().then(async (status) => {
-      console.log("Channel Status:", status);
-      if (status === "SUBSCRIBED") {
-        await channel.track({
-          nickname,
-          gender,
-          online_at: new Date().toISOString(),
-        });
-        console.log("Tracking gestartet:", nickname);
-      }
-    });
+	// ✅ korrekt
+	channel.subscribe((status) => {
+	  console.log("Channel Status:", status);
+	  if (status === "SUBSCRIBED") {
+		channel.track({
+		  nickname,
+		  gender,
+		  online_at: new Date().toISOString(),
+		});
+		console.log("Tracking gestartet:", nickname);
+	  }
+	});
+
 
     return () => {
       channel.unsubscribe();
