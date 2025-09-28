@@ -4,14 +4,14 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
-  // Clerk: SERVER-VARIANTE verwenden
-  const { userId } = auth();
+  // Clerk: SERVER-VERSION nutzen und (wichtig) awaiten
+  const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Body lesen und validieren (sehr basic)
-  const body = await req.json().catch(() => null) as
+  // Body lesen & basic validieren
+  const body = (await req.json().catch(() => null)) as
     | { content?: string; room?: string }
     | null;
 
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Content too long" }, { status: 400 });
   }
 
-  // Optional: Username aus Clerk ziehen (fallbacks)
+  // Username aus Clerk mit Fallbacks
   const cu = await currentUser().catch(() => null);
   const username =
     cu?.username ||
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     cu?.emailAddresses?.[0]?.emailAddress ||
     "User";
 
-  // Insert mit Service Role (Server only!)
+  // Insert (Service Role – nur auf Server)
   const { error } = await supabaseAdmin
     .from("messages")
     .insert([{ room, user_id: userId, username, content }]);
