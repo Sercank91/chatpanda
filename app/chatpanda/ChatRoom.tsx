@@ -32,27 +32,27 @@ export default function ChatRoom({ room }: { room: string }) {
       }
     });
 
-    // 🔹 Log bei Join/Leave
     channel.on("presence", { event: "join" }, ({ key, newPresences }) => {
       console.log("JOIN:", key, newPresences);
     });
+
     channel.on("presence", { event: "leave" }, ({ key, leftPresences }) => {
       console.log("LEAVE:", key, leftPresences);
     });
 
-    // 🔹 Sync: State komplett neu setzen
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
       console.log("Presence raw state:", state);
 
       const users: OnlineUser[] = [];
       Object.keys(state).forEach((key) => {
-        const presences = state[key] as any[];
+        // ✅ hier unknown statt any → sauberer Typ
+        const presences = state[key] as unknown as OnlineUser[];
         presences.forEach((p) => {
           users.push({
             nickname: p.nickname,
-            gender: p.gender,
-            online_at: p.online_at,
+            gender: p.gender || "u",
+            online_at: p.online_at || new Date().toISOString(),
           });
         });
       });
