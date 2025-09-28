@@ -1,54 +1,44 @@
+// app/api/chatpanda/send/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
-  const { userId } = await auth(); // ✅ await hinzufügen
-  const body = await req.json().catch(() => null);
+  try {
+    const body = await req.json().catch(() => null);
 
-  if (!body?.content || !body?.room) {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-  }
+    if (!body?.content) {
+      return NextResponse.json(
+        { error: "Keine Nachricht übergeben." },
+        { status: 400 }
+      );
+    }
 
-  // Falls Clerk-User eingeloggt
-  if (userId) {
-    const user = await currentUser();
-    const username =
-      user?.username ||
-      user?.firstName ||
-      user?.emailAddresses[0]?.emailAddress ||
-      "User";
+    // Standardwerte falls nickname oder gender fehlen
+    const nickname = body.nickname || "Gast";
+    const gender = body.gender || "u"; // u = unknown/unset
 
     const { error } = await supabaseAdmin.from("messages").insert({
-      room: body.room,
+      room: body.room || "global",
+      username: nickname,
+      gender: gender,
       content: body.content,
-      user_id: userId,
-      username,
-      gender: body.gender || null,
+      user_id: body.userId || null,
     });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("Supabase Insert Error:", error);
+      return NextResponse.json(
+        { error: "Fehler beim Speichern in der DB." },
+        { status: 500 }
+      );
     }
-    return NextResponse.json({ ok: true });
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Server Error:", err);
+    return NextResponse.json(
+      { error: "Interner Serverfehler." },
+      { status: 500 }
+    );
   }
-
-  // Falls kein Clerk-User → Gastmodus
-  if (!body?.nickname || !body?.gender) {
-    return NextResponse.json({ error: "Nickname & Gender required for guest" }, { status: 400 });
-  }
-
-  const { error } = await supabaseAdmin.from("messages").insert({
-    room: body.room,
-    content: body.content,
-    user_id: null, // kein Clerk
-    username: body.nickname,
-    gender: body.gender,
-  });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ ok: true });
 }
