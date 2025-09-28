@@ -1,8 +1,8 @@
-// app/chatpanda/ChatRoom.tsx
 "use client";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/browser";
+import { supabaseBrowser } from "@/lib/supabase/browser"; // ✅ richtig: Browser-Client
 
+// 🔹 Typ für Online-User
 type OnlineUser = {
   nickname: string;
   gender: string;
@@ -17,11 +17,11 @@ export default function ChatRoom({ room }: { room: string }) {
     const gender = localStorage.getItem("chatpanda_gender") || "u";
 
     // Realtime Presence Channel
-    const channel = supabase.channel(`room:${room}`, {
+    const channel = supabaseBrowser.channel(`room:${room}`, {
       config: { presence: { key: nickname } },
     });
 
-    // Tracken wenn verbunden
+    // Wenn Channel verbunden ist → eigenen Status senden
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         await channel.track({
@@ -32,17 +32,26 @@ export default function ChatRoom({ room }: { room: string }) {
       }
     });
 
-    // Presence Sync → Liste der User holen
+    // Presence-Änderungen auswerten
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
+      console.log("Presence raw state:", state); // 🔹 Debug
+
       const users: OnlineUser[] = [];
 
       Object.values(state).forEach((arr) => {
-        (arr as unknown as OnlineUser[]).forEach((user) => {
-          users.push(user);
+        (arr as any[]).forEach((user) => {
+          if (user.nickname) {
+            users.push({
+              nickname: user.nickname,
+              gender: user.gender || "u",
+              online_at: user.online_at || new Date().toISOString(),
+            });
+          }
         });
       });
 
+      console.log("Online Users parsed:", users); // 🔹 Debug
       setOnlineUsers(users);
     });
 
@@ -53,9 +62,7 @@ export default function ChatRoom({ room }: { room: string }) {
 
   return (
     <div className="bg-gray-900 p-4 rounded-lg">
-      <h2 className="text-lg font-bold mb-2">
-        👥 Online im Raum: {room}
-      </h2>
+      <h2 className="text-lg font-bold mb-2">👥 Online im Raum: {room}</h2>
       {onlineUsers.length === 0 ? (
         <p className="text-gray-400 text-sm">Niemand ist online.</p>
       ) : (
