@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
-// 🔹 Typ für Online-User
 type OnlineUser = {
   nickname: string;
   gender: string;
@@ -17,25 +16,23 @@ export default function ChatRoom({ room }: { room: string }) {
     const nickname = localStorage.getItem("chatpanda_nickname") || "Gast";
     const gender = localStorage.getItem("chatpanda_gender") || "u";
 
-    // Realtime Presence Channel
     const channel = supabase.channel(`room:${room}`, {
       config: { presence: { key: nickname } },
     });
 
-    // Track User wenn verbunden
     channel.subscribe((status) => {
-      console.log("Channel Status:", status); // ✅ Debug
+      console.log("Channel Status:", status);
       if (status === "SUBSCRIBED") {
         channel.track({
           nickname,
           gender,
           online_at: new Date().toISOString(),
         });
-        console.log("Tracking gestartet:", nickname); // ✅ Debug
+        console.log("Tracking gestartet:", nickname);
       }
     });
 
-    // Logs für Join / Leave
+    // 🔹 Log bei Join/Leave
     channel.on("presence", { event: "join" }, ({ key, newPresences }) => {
       console.log("JOIN:", key, newPresences);
     });
@@ -43,25 +40,24 @@ export default function ChatRoom({ room }: { room: string }) {
       console.log("LEAVE:", key, leftPresences);
     });
 
-    // Presence Sync → Liste der User holen
+    // 🔹 Sync: State komplett neu setzen
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
-      console.log("Presence raw state:", state); // ✅ Debug
+      console.log("Presence raw state:", state);
 
       const users: OnlineUser[] = [];
-      Object.values(state).forEach((arr) => {
-        (arr as unknown as OnlineUser[]).forEach((user) => {
-          if (user.nickname) {
-            users.push({
-              nickname: user.nickname,
-              gender: user.gender || "u",
-              online_at: user.online_at || new Date().toISOString(),
-            });
-          }
+      Object.keys(state).forEach((key) => {
+        const presences = state[key] as any[];
+        presences.forEach((p) => {
+          users.push({
+            nickname: p.nickname,
+            gender: p.gender,
+            online_at: p.online_at,
+          });
         });
       });
 
-      console.log("Online Users parsed:", users); // ✅ Debug
+      console.log("Online Users parsed:", users);
       setOnlineUsers(users);
     });
 
