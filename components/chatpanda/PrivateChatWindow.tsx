@@ -9,24 +9,28 @@ type PrivateChatWindowProps = {
   onClose: () => void;
 };
 
-// 🔹 Typisierung für private_messages
-type PrivateMessage = {
-  from_nickname: string;
-  to_nickname: string;
-  message: string;
+type Message = {
+  from: string;
+  text: string;
 };
 
 export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowProps) {
-  const [messages, setMessages] = useState<{ from: string; text: string }[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [myNickname, setMyNickname] = useState("Ich");
 
-  const myNickname =
-    typeof window !== "undefined"
-      ? localStorage.getItem("chatpanda_nickname") || "Ich"
-      : "Ich";
-
-  // 🔹 Realtime Subscription für eingehende Nachrichten
+  // 🔹 Nickname nur im Browser auslesen
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("chatpanda_nickname");
+      setMyNickname(stored || "Ich");
+    }
+  }, []);
+
+  // 🔹 Realtime Subscription
+  useEffect(() => {
+    if (!myNickname || !user) return; // Schutz vor leeren Werten
+
     const channel = supabase
       .channel(`dm:${myNickname}-${user}`)
       .on(
@@ -38,11 +42,14 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
           filter: `to_nickname=eq.${myNickname},from_nickname=eq.${user}`,
         },
         (payload) => {
-          const m = payload.new as PrivateMessage; // ✅ statt any
-          setMessages((prev) => [
-            ...prev,
-            { from: m.from_nickname, text: m.message },
-          ]);
+          // Typ sauber casten
+          const m = payload.new as {
+            from_nickname: string;
+            message: string;
+          };
+          if (m && m.from_nickname && m.message) {
+            setMessages((prev) => [...prev, { from: m.from_nickname, text: m.message }]);
+          }
         }
       )
       .subscribe();
@@ -53,20 +60,28 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
   }, [myNickname, user]);
 
   async function handleSend() {
-    if (!input.trim()) return;
+    if (!input.trim() || !myNickname || !user) return;
 
     const text = input.trim();
 
-    // 🔹 Nachricht lokal anzeigen
+    // 🔹 Sofort lokal anzeigen
     setMessages((prev) => [...prev, { from: myNickname, text }]);
     setInput("");
 
-    // 🔹 Nachricht in DB speichern → löst Realtime beim Empfänger aus.
-    await supabase.from("private_messages").insert({
-      from_nickname: myNickname,
-      to_nickname: user,
-      message: text,
-    });
+    try {
+      // 🔹 Nachricht in DB speichern → löst Realtime beim Empfänger aus
+      const { error } = await supabase.from("private_messages").insert({
+        from_nickname: myNickname,
+        to_nickname: user,
+        message: text,
+      });
+
+      if (error) {
+        console.error("Fehler beim Senden:", error.message);
+      }
+    } catch (err) {
+      console.error("Unerwarteter Fehler:", err);
+    }
   }
 
   return (
@@ -82,16 +97,12 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
 
         {/* Nachrichtenbereich */}
         <div className="max-h-60 overflow-y-auto p-3 space-y-2 text-sm">
-          {messages.length === 0 && (
-            <p className="text-gray-400">Noch keine Nachrichten</p>
-          )}
+          {messages.length === 0 && <p className="text-gray-400">Noch keine Nachrichten</p>}
           {messages.map((m, i) => (
             <div
               key={i}
               className={`p-2 rounded ${
-                m.from === myNickname
-                  ? "bg-blue-700 text-right"
-                  : "bg-gray-800 text-left"
+                m.from === myNickname ? "bg-blue-700 text-right" : "bg-gray-800 text-left"
               }`}
             >
               <span className="font-semibold">{m.from}:</span> {m.text}
