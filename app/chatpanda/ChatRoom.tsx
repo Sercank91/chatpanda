@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { supabaseBrowser } from "@/lib/supabase/browser"; // ✅ richtig: Browser-Client
+import { supabase } from "@/lib/supabase/browser"; // ✅ vereinheitlicht
 
 // 🔹 Typ für Online-User
 type OnlineUser = {
@@ -17,7 +17,7 @@ export default function ChatRoom({ room }: { room: string }) {
     const gender = localStorage.getItem("chatpanda_gender") || "u";
 
     // Realtime Presence Channel
-    const channel = supabaseBrowser.channel(`room:${room}`, {
+    const channel = supabase.channel(`room:${room}`, {
       config: { presence: { key: nickname } },
     });
 
@@ -40,7 +40,7 @@ export default function ChatRoom({ room }: { room: string }) {
       const users: OnlineUser[] = [];
 
       Object.values(state).forEach((arr) => {
-        (arr as any[]).forEach((user) => {
+        (arr as unknown as OnlineUser[]).forEach((user) => {
           if (user.nickname) {
             users.push({
               nickname: user.nickname,
