@@ -35,6 +35,15 @@ export default function ChatRoom({ room }: { room: string }) {
       }
     });
 
+    // 🔹 NEU: join & leave Logs für Debug
+    channel.on("presence", { event: "join" }, ({ key, newPresences }) => {
+      console.log("JOIN:", key, newPresences);
+    });
+
+    channel.on("presence", { event: "leave" }, ({ key, leftPresences }) => {
+      console.log("LEAVE:", key, leftPresences);
+    });
+
     // Presence Sync → Liste der User holen
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
