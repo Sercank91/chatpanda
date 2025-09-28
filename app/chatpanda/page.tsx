@@ -1,21 +1,23 @@
+// app/chatpanda/page.tsx
 "use client";
 import { useEffect, useState, useRef } from "react";
 import ChatFeed from "@/components/chatpanda/ChatFeed";
 import ChatInput from "@/components/chatpanda/ChatInput";
 import ChatRoom from "./ChatRoom";
 import PrivateChatWindow from "@/components/chatpanda/PrivateChatWindow";
+import { supabase } from "@/lib/supabase/browser";
 
 export default function ChatpandaPage() {
   const [nickname, setNickname] = useState<string | null>(null);
   const [gender, setGender] = useState<string | null>(null);
   const [showUsers, setShowUsers] = useState(false);
 
-  // 🔹 Kontextmenü
+  // Kontextmenü
   const [contextUser, setContextUser] = useState<string | null>(null);
   const [contextPos, setContextPos] = useState<{ x: number; y: number } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
-  // 🔹 Offene Privatchats
+  // Offene Privatchats
   const [privateChats, setPrivateChats] = useState<string[]>([]);
 
   useEffect(() => {
@@ -34,6 +36,41 @@ export default function ChatpandaPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // 🔹 NEU: Eingehende private Nachrichten -> Fenster automatisch öffnen
+  useEffect(() => {
+    if (!nickname) return;
+
+    const channel = supabase
+      .channel(`inbox:${nickname}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "private_messages",
+          filter: `to_nickname=eq.${nickname}`,
+        },
+        (payload) => {
+          const m = payload.new as { from_nickname: string; message: string };
+
+          if (m && m.from_nickname) {
+            // Falls Fenster noch nicht offen ist → öffnen
+            setPrivateChats((prev) => {
+              if (!prev.includes(m.from_nickname)) {
+                return [...prev, m.from_nickname];
+              }
+              return prev;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [nickname]);
 
   if (!nickname || !gender) {
     return (
@@ -139,7 +176,7 @@ export default function ChatpandaPage() {
         </div>
       )}
 
-      {/* Offene Privatchats → mehrere Fenster möglich */}
+      {/* Offene Privatchats */}
       {privateChats.map((user) => (
         <PrivateChatWindow
           key={user}
