@@ -1,8 +1,8 @@
+// app/chatpanda/ChatRoom.tsx
 "use client";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/browser"; // 🔹 wichtig: den Client für den Browser importieren
+import { supabase } from "@/lib/supabase/browser";
 
-// 🔹 Typ für Online-User, damit kein "any" mehr
 type OnlineUser = {
   nickname: string;
   gender: string;
@@ -21,7 +21,7 @@ export default function ChatRoom({ room }: { room: string }) {
       config: { presence: { key: nickname } },
     });
 
-    // Wenn der Channel verbunden ist → eigenen Status senden
+    // Tracken wenn verbunden
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         await channel.track({
@@ -32,7 +32,7 @@ export default function ChatRoom({ room }: { room: string }) {
       }
     });
 
-    // Wenn sich die Presence-Liste ändert → aktualisieren
+    // Presence Sync → Liste der User holen
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
       const users: OnlineUser[] = [];
@@ -47,13 +47,15 @@ export default function ChatRoom({ room }: { room: string }) {
     });
 
     return () => {
-      channel.unsubscribe(); // Beim Verlassen des Chats wieder abmelden
+      channel.unsubscribe();
     };
   }, [room]);
 
   return (
     <div className="bg-gray-900 p-4 rounded-lg">
-      <h2 className="text-lg font-bold mb-2">👥 Online im Raum: {room}</h2>
+      <h2 className="text-lg font-bold mb-2">
+        👥 Online im Raum: {room}
+      </h2>
       {onlineUsers.length === 0 ? (
         <p className="text-gray-400 text-sm">Niemand ist online.</p>
       ) : (
