@@ -8,9 +8,22 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ChatPanda",
-  description: "Live-Chats in Echtzeit",
+  title: "Chatpanda – Kostenlos chatten ohne Anmeldung",
+  description: "Chatpanda ist dein kostenloser Chatroom. Treffe neue Leute, chatte live und anonym – auch ohne Anmeldung. Direkt starten mit Nickname.",
+  keywords: ["chat", "kostenlos", "chatroom", "ohne anmeldung", "freunde finden", "chatten"],
+  openGraph: {
+    title: "Chatpanda – Kostenlos chatten ohne Anmeldung",
+    description: "Chatpanda ist dein kostenloser Chatroom. Treffe neue Leute, chatte live und anonym.",
+    url: "https://www.chatpanda.io",
+    siteName: "Chatpanda",
+    images: [
+      { url: "/globe.svg", width: 800, height: 600, alt: "Chatpanda Logo" }
+    ],
+    locale: "de_DE",
+    type: "website",
+  },
 };
+
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
