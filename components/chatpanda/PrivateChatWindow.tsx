@@ -1,12 +1,13 @@
 // components/chatpanda/PrivateChatWindow.tsx
 "use client";
 import { useEffect, useState } from "react";
-import { Rnd } from "react-rnd"; // ✅ react-rnd statt react-draggable
+import { Rnd } from "react-rnd";
 import { supabase } from "@/lib/supabase/browser";
 
 type PrivateChatWindowProps = {
   user: string; // Empfänger
   onClose: () => void;
+  initialMessages?: { from: string; text: string }[]; // ✅ NEU
 };
 
 type Message = {
@@ -14,8 +15,12 @@ type Message = {
   text: string;
 };
 
-export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+export default function PrivateChatWindow({
+  user,
+  onClose,
+  initialMessages = [], // ✅ Standardwert = leer
+}: PrivateChatWindowProps) {
+  const [messages, setMessages] = useState<Message[]>(initialMessages); // ✅ Start mit übergebenen Nachrichten
   const [input, setInput] = useState("");
   const [myNickname, setMyNickname] = useState("Ich");
 
@@ -39,7 +44,7 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
           event: "INSERT",
           schema: "public",
           table: "private_messages",
-          filter: `or(and(to_nickname.eq.${myNickname},from_nickname.eq.${user}),and(to_nickname.eq.${user},from_nickname.eq.${myNickname}))`
+          filter: `or(and(to_nickname.eq.${myNickname},from_nickname.eq.${user}),and(to_nickname.eq.${user},from_nickname.eq.${myNickname}))`,
         },
         (payload) => {
           const m = payload.new as {
