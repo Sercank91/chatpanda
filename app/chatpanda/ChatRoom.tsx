@@ -24,18 +24,29 @@ export default function ChatRoom({ room }: { room: string }) {
 
     // Track User wenn verbunden
     channel.subscribe((status) => {
+      console.log("Channel Status:", status); // ✅ Debug
       if (status === "SUBSCRIBED") {
         channel.track({
           nickname,
           gender,
           online_at: new Date().toISOString(),
         });
+        console.log("Tracking gestartet:", nickname); // ✅ Debug
       }
+    });
+
+    // Logs für Join / Leave
+    channel.on("presence", { event: "join" }, ({ key, newPresences }) => {
+      console.log("JOIN:", key, newPresences);
+    });
+    channel.on("presence", { event: "leave" }, ({ key, leftPresences }) => {
+      console.log("LEAVE:", key, leftPresences);
     });
 
     // Presence Sync → Liste der User holen
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
+      console.log("Presence raw state:", state); // ✅ Debug
 
       const users: OnlineUser[] = [];
       Object.values(state).forEach((arr) => {
@@ -50,6 +61,7 @@ export default function ChatRoom({ room }: { room: string }) {
         });
       });
 
+      console.log("Online Users parsed:", users); // ✅ Debug
       setOnlineUsers(users);
     });
 
