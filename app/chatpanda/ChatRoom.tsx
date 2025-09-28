@@ -1,6 +1,7 @@
+// app/chatpanda/ChatRoom.tsx
 "use client";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/browser"; // ✅ vereinheitlicht
+import { supabase } from "@/lib/supabase/browser";
 
 // 🔹 Typ für Online-User
 type OnlineUser = {
@@ -21,26 +22,27 @@ export default function ChatRoom({ room }: { room: string }) {
       config: { presence: { key: nickname } },
     });
 
-    // Wenn Channel verbunden ist → eigenen Status senden
+    // Status-Log + eigenes Presence senden
     channel.subscribe(async (status) => {
+      console.log("Channel Status:", status); // 🔹 Debug
       if (status === "SUBSCRIBED") {
         await channel.track({
           nickname,
           gender,
           online_at: new Date().toISOString(),
         });
+        console.log("Tracking gestartet:", nickname); // 🔹 Debug
       }
     });
 
-    // Presence-Änderungen auswerten
+    // Presence Sync → Liste der User holen
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
       console.log("Presence raw state:", state); // 🔹 Debug
 
       const users: OnlineUser[] = [];
-
       Object.values(state).forEach((arr) => {
-        (arr as unknown as OnlineUser[]).forEach((user) => {
+        (arr as any[]).forEach((user) => {
           if (user.nickname) {
             users.push({
               nickname: user.nickname,
