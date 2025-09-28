@@ -23,7 +23,7 @@ export default function HomePage() {
     <main className="min-h-screen flex flex-col items-center justify-center bg-black text-gray-100 p-6">
       <section className="w-full max-w-md space-y-6 text-center">
         <h1 className="text-3xl md:text-5xl font-bold">
-          Willkommen bei <span className="text-indigo-500">Chatpanda</span>
+          Willkommen bei <u>Sercans</u> <span className="text-indigo-500">ChatPanda</span>
         </h1>
         <p className="opacity-80">
           Kostenlos chatten ohne Anmeldung – wähle einfach einen Nickname und starte sofort!
