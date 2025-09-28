@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null);
+    console.log("📥 API Body:", body);
 
     if (!body?.content) {
       return NextResponse.json(
@@ -26,18 +27,24 @@ export async function POST(req: NextRequest) {
     });
 
     if (error) {
-      console.error("Supabase Insert Error:", error);
+      console.error("❌ Supabase Insert Error:", error);
       return NextResponse.json(
-        { error: "Fehler beim Speichern in der DB." },
+        { error: error.message || "Fehler beim Speichern in der DB." },
         { status: 500 }
       );
     }
 
+    console.log("✅ Nachricht gespeichert:", {
+      nickname,
+      gender,
+      content: body.content,
+    });
+
     return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error("Server Error:", err);
+  } catch (err: any) {
+    console.error("🔥 Server Error:", err);
     return NextResponse.json(
-      { error: "Interner Serverfehler." },
+      { error: err.message || "Interner Serverfehler." },
       { status: 500 }
     );
   }
