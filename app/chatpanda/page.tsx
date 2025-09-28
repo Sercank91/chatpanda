@@ -7,6 +7,7 @@ import ChatRoom from "./ChatRoom";
 export default function ChatpandaPage() {
   const [nickname, setNickname] = useState<string | null>(null);
   const [gender, setGender] = useState<string | null>(null);
+  const [showUsers, setShowUsers] = useState(false);
 
   useEffect(() => {
     setNickname(localStorage.getItem("chatpanda_nickname"));
@@ -22,34 +23,57 @@ export default function ChatpandaPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-950">
-      {/* Topbar */}
-      <div className="w-full bg-gray-900 border-b border-gray-800 px-4 py-2 flex justify-end text-sm text-gray-300">
-        Hallo, <span className="ml-1 font-semibold">{nickname}</span>
+    <div className="h-screen flex flex-col">
+      {/* Top bar with nickname on right */}
+      <div className="bg-white border-b px-4 py-3 flex justify-between items-center sm:justify-end">
+        {/* Mobile toggle button */}
+        <button 
+          className="sm:hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          onClick={() => setShowUsers(!showUsers)}
+        >
+          Users ({showUsers ? 'Hide' : 'Show'})
+        </button>
+        <span className="text-sm text-gray-700 font-medium">Hello, {nickname}</span>
       </div>
 
-      {/* Main Bereich */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Chatbereich links */}
-        <div className="flex-1 flex flex-col">
-          {/* Nachrichtenbereich mit Scroll */}
-          <div className="flex-1 p-4 overflow-y-auto">
-            <h1 className="text-xl font-semibold mb-4">
-              Willkommen, {nickname} ({gender})
-            </h1>
+      {/* Main content area */}
+      <div className="flex-1 flex min-h-0">
+        {/* Left side: Chat messages (main area) */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-hidden">
             <ChatFeed />
           </div>
+        </div>
 
-          {/* Eingabefeld unten fixiert */}
-          <div className="border-t border-gray-800 p-3 bg-gray-900">
-            <ChatInput room="global" />
+        {/* Right side: Online users (desktop only) */}
+        <div className="hidden sm:flex w-80 border-l bg-gray-50/50">
+          <div className="w-full">
+            <ChatRoom room="global" />
           </div>
         </div>
+      </div>
 
-        {/* Sidebar rechts */}
-        <div className="w-64 bg-gray-900 border-l border-gray-800 p-4 overflow-y-auto">
-          <ChatRoom room="global" />
+      {/* Mobile: Users overlay */}
+      {showUsers && (
+        <div className="fixed inset-0 bg-white z-50 flex flex-col sm:hidden">
+          <div className="bg-white border-b px-4 py-3 flex justify-between items-center shadow-sm">
+            <h2 className="font-semibold text-gray-900">Online Users</h2>
+            <button 
+              onClick={() => setShowUsers(false)}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              Back to Chat
+            </button>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <ChatRoom room="global" />
+          </div>
         </div>
+      )}
+
+      {/* Fixed chat input at bottom */}
+      <div className="border-t bg-white shadow-lg">
+        <ChatInput room="global" />
       </div>
     </div>
   );
