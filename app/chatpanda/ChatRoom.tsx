@@ -22,20 +22,7 @@ export default function ChatRoom({ room }: { room: string }) {
       config: { presence: { key: nickname } },
     });
 
-    // Status-Log + eigenes Presence senden
-    channel.subscribe(async (status) => {
-      console.log("Channel Status:", status); // 🔹 Debug
-      if (status === "SUBSCRIBED") {
-        await channel.track({
-          nickname,
-          gender,
-          online_at: new Date().toISOString(),
-        });
-        console.log("Tracking gestartet:", nickname); // 🔹 Debug
-      }
-    });
-
-    // 🔹 NEU: join & leave Logs für Debug
+    // 🔹 join & leave Logs für Debug
     channel.on("presence", { event: "join" }, ({ key, newPresences }) => {
       console.log("JOIN:", key, newPresences);
     });
@@ -64,6 +51,19 @@ export default function ChatRoom({ room }: { room: string }) {
 
       console.log("Online Users parsed:", users); // 🔹 Debug
       setOnlineUsers(users);
+    });
+
+    // 🔹 KORRIGIERT: subscribe + track
+    channel.subscribe().then(async (status) => {
+      console.log("Channel Status:", status);
+      if (status === "SUBSCRIBED") {
+        await channel.track({
+          nickname,
+          gender,
+          online_at: new Date().toISOString(),
+        });
+        console.log("Tracking gestartet:", nickname);
+      }
     });
 
     return () => {
