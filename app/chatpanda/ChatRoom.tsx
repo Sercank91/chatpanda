@@ -32,6 +32,7 @@ export default function ChatRoom({ room }: { room: string }) {
       }
     });
 
+    // Logs zur Kontrolle
     channel.on("presence", { event: "join" }, ({ key, newPresences }) => {
       console.log("JOIN:", key, newPresences);
     });
@@ -45,15 +46,17 @@ export default function ChatRoom({ room }: { room: string }) {
       console.log("Presence raw state:", state);
 
       const users: OnlineUser[] = [];
-      Object.keys(state).forEach((key) => {
-        // ✅ hier unknown statt any → sauberer Typ
-        const presences = state[key] as unknown as OnlineUser[];
-        presences.forEach((p) => {
-          users.push({
-            nickname: p.nickname,
-            gender: p.gender || "u",
-            online_at: p.online_at || new Date().toISOString(),
-          });
+
+      Object.values(state).forEach((arr) => {
+        // 👉 WICHTIG: genau so wie früher, nur Typ sicher
+        (arr as unknown as Array<Partial<OnlineUser>>).forEach((user) => {
+          if (user.nickname) {
+            users.push({
+              nickname: user.nickname,
+              gender: user.gender ?? "u",
+              online_at: user.online_at ?? new Date().toISOString(),
+            });
+          }
         });
       });
 
