@@ -1,7 +1,7 @@
 // components/chatpanda/PrivateChatWindow.tsx
 "use client";
 import { useEffect, useState } from "react";
-import Draggable from "react-draggable";
+import { Rnd } from "react-rnd"; // ✅ react-rnd statt react-draggable
 import { supabase } from "@/lib/supabase/browser";
 
 type PrivateChatWindowProps = {
@@ -29,7 +29,7 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
 
   // 🔹 Realtime Subscription
   useEffect(() => {
-    if (!myNickname || !user) return; // Schutz vor leeren Werten
+    if (!myNickname || !user) return;
 
     const channel = supabase
       .channel(`dm:${myNickname}-${user}`)
@@ -42,7 +42,6 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
           filter: `to_nickname=eq.${myNickname},from_nickname=eq.${user}`,
         },
         (payload) => {
-          // Typ sauber casten
           const m = payload.new as {
             from_nickname: string;
             message: string;
@@ -69,7 +68,6 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
     setInput("");
 
     try {
-      // 🔹 Nachricht in DB speichern → löst Realtime beim Empfänger aus
       const { error } = await supabase.from("private_messages").insert({
         from_nickname: myNickname,
         to_nickname: user,
@@ -85,8 +83,18 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
   }
 
   return (
-    <Draggable handle=".header">
-      <div className="fixed bottom-20 right-5 w-72 bg-gray-900 text-white rounded-lg shadow-xl border border-gray-700 z-50">
+    <Rnd
+      default={{
+        x: 100,
+        y: 100,
+        width: 300,
+        height: 350,
+      }}
+      bounds="window"
+      dragHandleClassName="header" // ✅ Nur über Header verschiebbar
+      enableResizing={false} // ✅ Resize deaktiviert, nur verschieben erlaubt
+    >
+      <div className="bg-gray-900 text-white rounded-lg shadow-xl border border-gray-700 h-full flex flex-col">
         {/* Header */}
         <div className="header cursor-move bg-blue-600 px-3 py-2 rounded-t-lg flex justify-between items-center">
           <span className="font-semibold">Privatchat mit {user}</span>
@@ -96,7 +104,7 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
         </div>
 
         {/* Nachrichtenbereich */}
-        <div className="max-h-60 overflow-y-auto p-3 space-y-2 text-sm">
+        <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
           {messages.length === 0 && <p className="text-gray-400">Noch keine Nachrichten</p>}
           {messages.map((m, i) => (
             <div
@@ -128,6 +136,6 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
           </button>
         </div>
       </div>
-    </Draggable>
+    </Rnd>
   );
 }

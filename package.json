@@ -14,7 +14,7 @@
     "next": "15.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-draggable": "^4.5.0"
+    "react-rnd": "^10.5.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
