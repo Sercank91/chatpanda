@@ -48,7 +48,7 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
     setMessages((prev) => [...prev, { from: myNickname, text }]);
     setInput("");
 
-    // 🔹 Nachricht in DB speichern → löst Realtime beim Empfänger aus
+    // 🔹 Nachricht in DB speichern → löst Realtime beim Empfänger aus.
     await supabase.from("private_messages").insert({
       from_nickname: myNickname,
       to_nickname: user,
