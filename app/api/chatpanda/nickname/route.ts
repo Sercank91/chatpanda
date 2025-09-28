@@ -3,6 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase/browser"; // Presence-Check
 import { supabaseAdmin } from "@/lib/supabase/admin"; // DB-Fallback
 
+// 🔹 Typ für Presence-Nutzer
+type PresenceUser = {
+  nickname: string;
+  gender: string;
+  online_at: string;
+};
+
 export async function POST(req: NextRequest) {
   const { nickname, gender } = await req.json();
 
@@ -20,8 +27,10 @@ export async function POST(req: NextRequest) {
     const channel = supabase.channel("presence-check");
     const state = channel.presenceState();
 
-    const exists = Object.values(state).some((arr: any) =>
-      (arr as any[]).some((user) => user.nickname?.toLowerCase() === lowerName)
+    const exists = Object.values(state).some((arr) =>
+      (arr as PresenceUser[]).some(
+        (user) => user.nickname?.toLowerCase() === lowerName
+      )
     );
 
     if (exists) {
