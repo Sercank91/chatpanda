@@ -32,6 +32,11 @@ export default function HomePage() {
         return;
       }
 
+      if (!data.success) { // 🔹 Erweiterung
+        setError("Nickname konnte nicht reserviert werden.");
+        return;
+      }
+
       // Nickname + Gender im Browser speichern
       localStorage.setItem("chatpanda_nickname", nickname.trim());
       localStorage.setItem("chatpanda_gender", gender);
@@ -95,7 +100,7 @@ export default function HomePage() {
             </label>
           </div>
 
-          {error && <p className="text-red-400 text-sm">{error}</p>} {/* 🔹 Neu */}
+          {error && <p className="text-red-400 text-sm">{error}</p>} {/* 🔹 Erweiterung */}
 
           <button
             type="submit"

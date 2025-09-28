@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Nickname konnte nicht aktualisiert werden." }, { status: 500 });
       }
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, reserved: lowerName }); // 🔹 Erweiterung
     }
   }
 
@@ -59,5 +59,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Nickname konnte nicht reserviert werden." }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, reserved: lowerName }); // 🔹 Erweiterung
 }

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import ChatFeed from "@/components/chatpanda/ChatFeed";
 import ChatInput from "@/components/chatpanda/ChatInput";
+import ChatRoom from "./ChatRoom"; // 🔹 Erweiterung
 
 export default function ChatpandaPage() {
   const [nickname, setNickname] = useState<string | null>(null);
@@ -25,6 +26,9 @@ export default function ChatpandaPage() {
       <h1 className="text-xl font-semibold">
         Willkommen, {nickname} ({gender})
       </h1>
+
+      {/* Online-Liste */}
+      <ChatRoom room="global" /> {/* 🔹 Erweiterung */}
 
       {/* Nachrichtenliste */}
       <ChatFeed />
