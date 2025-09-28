@@ -7,6 +7,11 @@ import ChatRoom from "./ChatRoom";
 import PrivateChatWindow from "@/components/chatpanda/PrivateChatWindow";
 import { supabase } from "@/lib/supabase/browser";
 
+type Message = {
+  from: string;
+  text: string;
+};
+
 export default function ChatpandaPage() {
   const [nickname, setNickname] = useState<string | null>(null);
   const [gender, setGender] = useState<string | null>(null);
@@ -17,8 +22,8 @@ export default function ChatpandaPage() {
   const [contextPos, setContextPos] = useState<{ x: number; y: number } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
-  // Offene Privatchats
-  const [privateChats, setPrivateChats] = useState<string[]>([]);
+  // Offene Chats + Nachrichten
+  const [privateChats, setPrivateChats] = useState<Record<string, Message[]>>({});
 
   useEffect(() => {
     setNickname(localStorage.getItem("chatpanda_nickname"));
@@ -37,7 +42,7 @@ export default function ChatpandaPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 🔹 NEU: Eingehende private Nachrichten -> Fenster automatisch öffnen
+  // Eingehende private Nachrichten -> Fenster automatisch öffnen
   useEffect(() => {
     if (!nickname) return;
 
@@ -55,12 +60,12 @@ export default function ChatpandaPage() {
           const m = payload.new as { from_nickname: string; message: string };
 
           if (m && m.from_nickname) {
-            // Falls Fenster noch nicht offen ist → öffnen
             setPrivateChats((prev) => {
-              if (!prev.includes(m.from_nickname)) {
-                return [...prev, m.from_nickname];
-              }
-              return prev;
+              const current = prev[m.from_nickname] || [];
+              return {
+                ...prev,
+                [m.from_nickname]: [...current, { from: m.from_nickname, text: m.message }],
+              };
             });
           }
         }
@@ -161,10 +166,13 @@ export default function ChatpandaPage() {
             <li
               className="px-3 py-2 hover:bg-gray-700 cursor-pointer"
               onClick={() => {
-                if (contextUser && !privateChats.includes(contextUser)) {
-                  setPrivateChats((prev) => [...prev, contextUser]);
-                }
-                setContextUser(null); // Menü schließen
+                setPrivateChats((prev) => {
+                  if (!prev[contextUser]) {
+                    return { ...prev, [contextUser]: [] };
+                  }
+                  return prev;
+                });
+                setContextUser(null);
               }}
             >
               💬 Privatchat im Fenster
@@ -177,11 +185,18 @@ export default function ChatpandaPage() {
       )}
 
       {/* Offene Privatchats */}
-      {privateChats.map((user) => (
+      {Object.entries(privateChats).map(([user, messages]) => (
         <PrivateChatWindow
           key={user}
           user={user}
-          onClose={() => setPrivateChats((prev) => prev.filter((u) => u !== user))}
+          onClose={() =>
+            setPrivateChats((prev) => {
+              const updated = { ...prev };
+              delete updated[user];
+              return updated;
+            })
+          }
+          initialMessages={messages} // ✅ Neue Nachrichten werden übergeben
         />
       ))}
     </div>
