@@ -25,7 +25,7 @@ export default function ChatpandaPage() {
   return (
     <div className="h-screen flex flex-col">
       {/* Top bar with nickname on right */}
-      <div className="bg-white border-b px-4 py-3 flex justify-between items-center sm:justify-end">
+      <div className="border-b px-4 py-3 flex justify-between items-center sm:justify-end">
         {/* Mobile toggle button */}
         <button 
           className="sm:hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
