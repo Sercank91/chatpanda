@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const state = channel.presenceState();
 
     const exists = Object.values(state).some((arr) =>
-      (arr as PresenceUser[]).some(
+      (arr as unknown as PresenceUser[]).some(
         (user) => user.nickname?.toLowerCase() === lowerName
       )
     );
