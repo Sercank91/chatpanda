@@ -2,8 +2,15 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/browser"; // 🔹 wichtig: den Client für den Browser importieren
 
+// 🔹 Typ für Online-User, damit kein "any" mehr
+type OnlineUser = {
+  nickname: string;
+  gender: string;
+  online_at: string;
+};
+
 export default function ChatRoom({ room }: { room: string }) {
-  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
 
   useEffect(() => {
     const nickname = localStorage.getItem("chatpanda_nickname") || "Gast";
@@ -28,10 +35,10 @@ export default function ChatRoom({ room }: { room: string }) {
     // Wenn sich die Presence-Liste ändert → aktualisieren
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
-      const users: any[] = [];
+      const users: OnlineUser[] = [];
 
-      Object.values(state).forEach((arr: any) => {
-        (arr as any[]).forEach((user) => {
+      Object.values(state).forEach((arr) => {
+        (arr as OnlineUser[]).forEach((user) => {
           users.push(user);
         });
       });

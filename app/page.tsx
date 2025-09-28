@@ -44,6 +44,7 @@ export default function HomePage() {
       // Weiterleiten zum Chat
       router.push("/chatpanda");
     } catch (err) {
+      console.error("API Fehler:", err); // 🔹 err wird genutzt → kein Lint-Fehler
       setError("Serverfehler – bitte später erneut versuchen.");
     }
   }

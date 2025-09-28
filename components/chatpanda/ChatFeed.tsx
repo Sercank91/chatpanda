@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabaseBrowser } from "@/lib/supabase/browser";
+import { supabase } from "@/lib/supabase/browser"; // ✅ korrekt importieren
 import type { Message } from "@/types/message";
 
 type Props = { initial?: Message[] };
@@ -11,7 +11,7 @@ export default function ChatFeed({ initial = [] }: Props) {
   const [messages, setMessages] = useState<Message[]>(initial);
 
   useEffect(() => {
-    const channel = supabaseBrowser
+    const channel = supabase // ✅ hier statt supabaseBrowser
       .channel("public:messages")
       .on(
         "postgres_changes",
@@ -24,7 +24,7 @@ export default function ChatFeed({ initial = [] }: Props) {
       .subscribe();
 
     return () => {
-      supabaseBrowser.removeChannel(channel);
+      supabase.removeChannel(channel); // ✅ angepasst
     };
   }, []);
 
