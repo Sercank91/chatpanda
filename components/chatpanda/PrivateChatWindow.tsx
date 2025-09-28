@@ -9,11 +9,21 @@ type PrivateChatWindowProps = {
   onClose: () => void;
 };
 
+// 🔹 Typisierung für private_messages
+type PrivateMessage = {
+  from_nickname: string;
+  to_nickname: string;
+  message: string;
+};
+
 export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowProps) {
   const [messages, setMessages] = useState<{ from: string; text: string }[]>([]);
   const [input, setInput] = useState("");
 
-  const myNickname = typeof window !== "undefined" ? localStorage.getItem("chatpanda_nickname") || "Ich" : "Ich";
+  const myNickname =
+    typeof window !== "undefined"
+      ? localStorage.getItem("chatpanda_nickname") || "Ich"
+      : "Ich";
 
   // 🔹 Realtime Subscription für eingehende Nachrichten
   useEffect(() => {
@@ -28,8 +38,11 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
           filter: `to_nickname=eq.${myNickname},from_nickname=eq.${user}`,
         },
         (payload) => {
-          const m = payload.new as any;
-          setMessages((prev) => [...prev, { from: m.from_nickname, text: m.message }]);
+          const m = payload.new as PrivateMessage; // ✅ statt any
+          setMessages((prev) => [
+            ...prev,
+            { from: m.from_nickname, text: m.message },
+          ]);
         }
       )
       .subscribe();
@@ -69,12 +82,16 @@ export default function PrivateChatWindow({ user, onClose }: PrivateChatWindowPr
 
         {/* Nachrichtenbereich */}
         <div className="max-h-60 overflow-y-auto p-3 space-y-2 text-sm">
-          {messages.length === 0 && <p className="text-gray-400">Noch keine Nachrichten</p>}
+          {messages.length === 0 && (
+            <p className="text-gray-400">Noch keine Nachrichten</p>
+          )}
           {messages.map((m, i) => (
             <div
               key={i}
               className={`p-2 rounded ${
-                m.from === myNickname ? "bg-blue-700 text-right" : "bg-gray-800 text-left"
+                m.from === myNickname
+                  ? "bg-blue-700 text-right"
+                  : "bg-gray-800 text-left"
               }`}
             >
               <span className="font-semibold">{m.from}:</span> {m.text}
