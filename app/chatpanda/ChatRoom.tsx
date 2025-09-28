@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
+// 🔹 Typ für Online-User
 type OnlineUser = {
   nickname: string;
   gender: string;
@@ -20,7 +21,7 @@ export default function ChatRoom({ room }: { room: string }) {
       config: { presence: { key: nickname } },
     });
 
-    // Events VOR dem Subscribe registrieren
+    // Events registrieren
     channel.on("presence", { event: "join" }, ({ key, newPresences }) => {
       console.log("JOIN:", key, newPresences);
     });
@@ -35,7 +36,7 @@ export default function ChatRoom({ room }: { room: string }) {
 
       const users: OnlineUser[] = [];
       Object.values(state).forEach((arr) => {
-        (arr as Array<any>).forEach((user) => {
+        (arr as unknown as OnlineUser[]).forEach((user: OnlineUser) => {
           if (user.nickname) {
             users.push({
               nickname: user.nickname,
