@@ -39,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gray-950 text-gray-100`}
         >
           <Header /> {/* 🐼 Panda-Header global */}
-          <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+          <main className="mx-auto px-4 py-6">{children}</main> /*max-w-6xl */
         </body>
       </html>
     </ClerkProvider>
