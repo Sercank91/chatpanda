@@ -38,7 +38,7 @@ export default function ChatRoom({ room }: { room: string }) {
       const users: OnlineUser[] = [];
 
       Object.values(state).forEach((arr) => {
-        (arr as OnlineUser[]).forEach((user) => {
+        (arr as unknown as OnlineUser[]).forEach((user) => {
           users.push(user);
         });
       });
