@@ -16,23 +16,41 @@ export default function ChatpandaPage() {
   if (!nickname || !gender) {
     return (
       <div className="flex min-h-screen items-center justify-center text-red-500">
-        Kein Nickname gefunden! Bitte gehe zurück zur Startseite.
+        Kein Nickname gefunden. Bitte gehe zurück zur Startseite.
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-screen bg-gray-950">
-      {/* 1.) Header bleibt wie auf Startseite (kommt aus layout.tsx) */}
+      {/* Header bleibt wie in layout.tsx */}
 
-      {/* 2.) Kleine Topbar rechtsbündig */}
+      {/* Topbar */}
       <div className="w-full bg-gray-900 border-b border-gray-800 px-4 py-2 flex justify-end text-sm text-gray-300">
         Hallo, <span className="ml-1 font-semibold">{nickname}</span>
       </div>
 
-      {/* Platzhalter – weitere Schritte bauen wir gleich */}
-      <div className="flex-1 flex items-center justify-center text-gray-400">
-        👉 Nächster Schritt: Online-User rechts & Chat links
+      {/* Main Bereich mit Chat links und Userliste rechts */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Chatbereich (links, später Nachrichten) */}
+        <div className="flex-1 p-4 overflow-y-auto">
+          <h1 className="text-xl font-semibold mb-4">
+            Willkommen, {nickname} ({gender})
+          </h1>
+
+          {/* Nachrichtenliste – Schritt 4 */}
+          <ChatFeed />
+        </div>
+
+        {/* Sidebar: Online-User rechts */}
+        <div className="w-64 bg-gray-900 border-l border-gray-800 p-4 overflow-y-auto">
+          <ChatRoom room="global" />
+        </div>
+      </div>
+
+      {/* Eingabefeld – Schritt 5 */}
+      <div className="border-t border-gray-800 p-3 bg-gray-900">
+        <ChatInput room="global" />
       </div>
     </div>
   );
