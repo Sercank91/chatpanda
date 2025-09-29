@@ -18,29 +18,41 @@ export async function POST(req: NextRequest) {
     const to = body.to.trim();
     const message = body.message.trim();
 
-    // ---- Flood-Schutz mit Redis ----
-    const key = `privmsg:${from}`;
-    const windowSec = 15; // Zeitfenster 15s
-    const maxMsgs = 5; // max. 5 Nachrichten pro Fenster
+    // Redis Keys
+    const keyCount = `privmsg:${from}:count`; // Nachrichten im Zeitfenster
+    const keyStrikes = `privmsg:${from}:strikes`; // Anzahl Verstöße
 
-    const count = await redis.incr(key);
-
+    // Nachrichten zählen
+    const count = await redis.incr(keyCount);
     if (count === 1) {
-      await redis.expire(key, windowSec);
+      await redis.expire(keyCount, 10); // 10 Sekunden Fenster
     }
 
-    if (count > maxMsgs) {
-      const ttl = await redis.ttl(key); // Restzeit holen
+    if (count > 5) {
+      // Strike erhöhen
+      const strikes = await redis.incr(keyStrikes);
+
+      // Ablaufzeit für Strikes (z.B. 1 Stunde)
+      if (strikes === 1) {
+        await redis.expire(keyStrikes, 3600);
+      }
+
+      // Strafzeiten: 1=15s, 2=30s, 3=60s, >=4=300s
+      let retry_after = 15;
+      if (strikes === 2) retry_after = 30;
+      else if (strikes === 3) retry_after = 60;
+      else if (strikes >= 4) retry_after = 300;
+
       return NextResponse.json(
         {
           error: "Zu viele Nachrichten – bitte kurz warten.",
-          retry_after: ttl > 0 ? ttl : windowSec,
+          retry_after,
         },
         { status: 429 }
       );
     }
 
-    // ---- In DB speichern ----
+    // In DB speichern
     const { error } = await supabaseAdmin.from("private_messages").insert({
       from_nickname: from,
       to_nickname: to,
