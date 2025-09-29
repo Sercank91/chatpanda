@@ -1,4 +1,3 @@
-// app/chatpanda/page.tsx
 "use client";
 import { useEffect, useState, useRef } from "react";
 import ChatFeed from "@/components/chatpanda/ChatFeed";
@@ -138,6 +137,7 @@ export default function ChatpandaPage() {
           <div className="w-full overflow-y-auto">
             <ChatRoom
               room="global"
+              blockedUsers={blockedUsers}   {/* ⬅️ NEU */}
               onUserClick={(user, pos) => {
                 setContextUser(user);
                 setContextPos(pos);
@@ -165,6 +165,7 @@ export default function ChatpandaPage() {
         <div className="flex-1 overflow-y-auto">
           <ChatRoom
             room="global"
+            blockedUsers={blockedUsers}   {/* ⬅️ NEU */}
             onUserClick={(user, pos) => {
               setContextUser(user);
               setContextPos(pos);

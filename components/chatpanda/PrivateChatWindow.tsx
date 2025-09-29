@@ -44,7 +44,7 @@ export default function PrivateChatWindow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Realtime Subscription
+  // Realtime Subscription mit Block-Prüfung
   useEffect(() => {
     if (!myNickname || !user) return;
 
@@ -59,6 +59,14 @@ export default function PrivateChatWindow({
             to_nickname: string;
             message: string;
           };
+
+          // ⬅️ Block-Prüfung (lokal)
+          const blockedRaw = localStorage.getItem("chatpanda_blocked");
+          const blocked: string[] = blockedRaw ? JSON.parse(blockedRaw) : [];
+
+          if (blocked.includes(m.from_nickname) || blocked.includes(m.to_nickname)) {
+            return; // blockierte Nachricht ignorieren
+          }
 
           if (
             (m.from_nickname === user && m.to_nickname === myNickname) ||

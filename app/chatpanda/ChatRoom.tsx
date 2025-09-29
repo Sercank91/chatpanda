@@ -1,4 +1,3 @@
-// app/chatpanda/ChatRoom.tsx
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
@@ -21,12 +20,13 @@ const genderMap: Record<string, { icon: string; color: string }> = {
 export default function ChatRoom({
   room,
   onUserClick,
+  blockedUsers = [],   // ⬅️ NEU: Blockliste als Prop
 }: {
   room: string;
   onUserClick?: (user: string, pos: { x: number; y: number }) => void;
+  blockedUsers?: string[];
 }) {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
-  const [blocked, setBlocked] = useState<string[]>([]);
 
   useEffect(() => {
     const nickname = localStorage.getItem("chatpanda_nickname") || "Gast";
@@ -64,12 +64,6 @@ export default function ChatRoom({
         }, {} as Record<string, OnlineUser>)
       );
 
-      // Blockliste laden
-      const blockedRaw = localStorage.getItem("chatpanda_blocked");
-      const blockedList: string[] = blockedRaw ? JSON.parse(blockedRaw) : [];
-      setBlocked(blockedList);
-
-      // ❌ nicht mehr herausfiltern – alle anzeigen
       setOnlineUsers(unique);
     });
 
@@ -113,7 +107,7 @@ export default function ChatRoom({
         <ul className="space-y-1">
           {onlineUsers.map((user, i) => {
             const g = genderMap[user.gender] || genderMap["u"];
-            const isBlocked = blocked.includes(user.nickname);
+            const isBlocked = blockedUsers.includes(user.nickname);
             return (
               <li
                 key={i}
