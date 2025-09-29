@@ -3,22 +3,31 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
+// 🔹 Typ für Online-User
 type OnlineUser = {
   nickname: string;
   gender: string;
   online_at: string;
 };
 
+// 🔹 Mapping für Geschlecht
 const genderMap: Record<string, { icon: string; color: string }> = {
   m: { icon: "♂️", color: "text-blue-400" },
   w: { icon: "♀️", color: "text-pink-400" },
   d: { icon: "⚧", color: "text-purple-400" },
-  u: { icon: "?", color: "text-gray-400" },
+  u: { icon: "?", color: "text-gray-400" }, // fallback für unbekannt
 };
 
-export default function ChatRoom({ room, onUserClick }: { room: string; onUserClick?: (user: string, pos: { x: number; y: number }) => void }) {
+export default function ChatRoom({
+  room,
+  onUserClick,
+}: {
+  room: string;
+  onUserClick?: (user: string, pos: { x: number; y: number }) => void;
+}) {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const hasWelcomed = useRef(false);
+  const knownUsers = useRef<Set<string>>(new Set()); // 👈 merken, wer schon da war
 
   useEffect(() => {
     const nickname = localStorage.getItem("chatpanda_nickname") || "Gast";
@@ -28,9 +37,14 @@ export default function ChatRoom({ room, onUserClick }: { room: string; onUserCl
       config: { presence: { key: nickname } },
     });
 
-    // JOIN → global sichtbar
+    // 👥 JOIN Event -> nur wenn wirklich neuer User
     channel.on("presence", { event: "join" }, async ({ key }) => {
-      if (key === nickname) return;
+      if (key === nickname) return; // eigene Meldung ignorieren
+      if (knownUsers.current.has(key)) return; // war schon drin → ignorieren
+
+      knownUsers.current.add(key);
+      console.log("JOIN:", key);
+
       await supabase.from("messages").insert({
         room,
         username: "System",
@@ -39,9 +53,12 @@ export default function ChatRoom({ room, onUserClick }: { room: string; onUserCl
       });
     });
 
-    // LEAVE → global sichtbar
+    // 👋 LEAVE Event
     channel.on("presence", { event: "leave" }, async ({ key }) => {
-      if (key === nickname) return;
+      if (key === nickname) return; // eigene Meldung ignorieren
+      console.log("LEAVE:", key);
+      knownUsers.current.delete(key);
+
       await supabase.from("messages").insert({
         room,
         username: "System",
@@ -50,22 +67,28 @@ export default function ChatRoom({ room, onUserClick }: { room: string; onUserCl
       });
     });
 
-    // SYNC → Online-Liste stabilisieren
+    // 🔄 SYNC → Online-Liste aktualisieren
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
       const users: OnlineUser[] = [];
+
       Object.values(state).forEach((arr) => {
         (arr as unknown as OnlineUser[]).forEach((user) => {
-          users.push({
-            nickname: user.nickname,
-            gender: user.gender ?? "u",
-            online_at: user.online_at ?? new Date().toISOString(),
-          });
+          if (user.nickname) {
+            users.push({
+              nickname: user.nickname,
+              gender: user.gender ?? "u",
+              online_at: user.online_at ?? new Date().toISOString(),
+            });
+            knownUsers.current.add(user.nickname); // 👈 User merken
+          }
         });
       });
+
       setOnlineUsers(users);
     });
 
+    // ✅ Willkommensnachricht nur für eigenen Client
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         channel.track({
@@ -74,7 +97,6 @@ export default function ChatRoom({ room, onUserClick }: { room: string; onUserCl
           online_at: new Date().toISOString(),
         });
 
-        // ✅ Willkommen nur einmal, nur lokal
         if (!hasWelcomed.current) {
           const welcomeMsg = {
             id: `local-${Date.now()}`,
@@ -84,7 +106,9 @@ export default function ChatRoom({ room, onUserClick }: { room: string; onUserCl
             type: "system",
             created_at: new Date().toISOString(),
           };
-          window.dispatchEvent(new CustomEvent("chatpanda-local-message", { detail: welcomeMsg }));
+          window.dispatchEvent(
+            new CustomEvent("chatpanda-local-message", { detail: welcomeMsg })
+          );
           hasWelcomed.current = true;
         }
       }
@@ -110,10 +134,15 @@ export default function ChatRoom({ room, onUserClick }: { room: string; onUserCl
                 className="flex items-center gap-2 text-gray-300 cursor-pointer hover:text-blue-400"
                 onClick={(e) => {
                   e.preventDefault();
-                  onUserClick?.(user.nickname, { x: e.clientX, y: e.clientY });
+                  onUserClick?.(user.nickname, {
+                    x: e.clientX,
+                    y: e.clientY,
+                  });
                 }}
               >
-                <span className={`${g.color} w-5 text-center inline-block`}>{g.icon}</span>
+                <span className={`${g.color} w-5 text-center inline-block`}>
+                  {g.icon}
+                </span>
                 <span className="font-semibold">{user.nickname}</span>
               </li>
             );
