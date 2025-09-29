@@ -1,13 +1,12 @@
-// components/chatpanda/ChatFeed.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 import type { Message } from "@/types/message";
 
-type Props = { initial?: Message[] };
+type Props = { initial?: Message[]; blockedUsers?: string[] };
 
-export default function ChatFeed({ initial = [] }: Props) {
+export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
   const [messages, setMessages] = useState<Message[]>(initial);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -20,6 +19,8 @@ export default function ChatFeed({ initial = [] }: Props) {
         { event: "INSERT", schema: "public", table: "messages", filter: "room=eq.global" },
         (payload) => {
           const m = payload.new as Message;
+          // blockierte User überspringen
+          if (blockedUsers.includes(m.username)) return;
           setMessages((prev) => [...prev, m]);
         }
       )
@@ -28,6 +29,7 @@ export default function ChatFeed({ initial = [] }: Props) {
     // Lokale Events (nur Willkommensnachricht für eigenen Client)
     const handler = (e: Event) => {
       const custom = e as CustomEvent<Message>;
+      if (blockedUsers.includes(custom.detail.username)) return;
       setMessages((prev) => [...prev, custom.detail]);
     };
     window.addEventListener("local-message", handler);
@@ -36,13 +38,12 @@ export default function ChatFeed({ initial = [] }: Props) {
       supabase.removeChannel(channel);
       window.removeEventListener("local-message", handler);
     };
-  }, []);
+  }, [blockedUsers]);
 
   // ⬇️ Immer ans Ende scrollen
   useEffect(() => {
     if (!bottomRef.current) return;
 
-    // Wenn es die erste Nachricht ist -> sofortiger Jump
     if (messages.length <= 1) {
       bottomRef.current.scrollIntoView({ behavior: "auto" });
     } else {
@@ -50,7 +51,10 @@ export default function ChatFeed({ initial = [] }: Props) {
     }
   }, [messages]);
 
-  if (!messages.length) {
+  // gefilterte Nachrichten (falls initiale oder alte enthalten)
+  const visibleMessages = messages.filter((m) => !blockedUsers.includes(m.username));
+
+  if (!visibleMessages.length) {
     return (
       <div className="rounded-md bg-gray-900/40 p-4 text-sm text-gray-400">
         Noch keine Nachrichten.
@@ -60,7 +64,7 @@ export default function ChatFeed({ initial = [] }: Props) {
 
   return (
     <div className="space-y-3">
-      {messages.map((m) => {
+      {visibleMessages.map((m) => {
         if (m.type === "system" || m.username === "System") {
           return (
             <div key={m.id} className="rounded-md bg-gray-900/70 p-3">
