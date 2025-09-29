@@ -1,3 +1,4 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -38,8 +39,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gray-950 text-gray-100`}
         >
-          <Header /> {/* 🐼 Panda-Header global max-w-6xl */}
-          <main className="mx-auto px-4 py-6">{children}</main> 
+          <Header /> {/* 🐼 Panda-Header fixiert oben */}
+          <main className="mx-auto px-4 pt-12 pb-6">{children}</main>
         </body>
       </html>
     </ClerkProvider>

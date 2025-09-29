@@ -5,8 +5,8 @@ import Link from "next/link";
 
 export default function Header() {
   return (
-    <header className="fixed top-0 left-0 w-full z-50 bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950 border-b border-gray-800">
-      <div className="mx-auto max-w-6xl flex items-center justify-between px-4 py-2">
+    <header className="fixed top-0 left-0 w-full z-50 bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950 border-b border-gray-800 h-12 flex items-center">
+      <div className="mx-auto max-w-6xl flex items-center justify-between px-4 w-full">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
           <span className="text-2xl transition-transform group-hover:scale-110">
