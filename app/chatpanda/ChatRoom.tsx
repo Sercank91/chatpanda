@@ -88,7 +88,7 @@ export default function ChatRoom({
       setOnlineUsers(users);
     });
 
-    // 🔹 Willkommensnachricht beim eigenen Eintritt
+    // 🔹 Willkommensnachricht beim eigenen Eintritt (nur einmal pro Session)
     channel.subscribe(async (status) => {
       console.log("Channel Status:", status);
       if (status === "SUBSCRIBED") {
@@ -99,12 +99,16 @@ export default function ChatRoom({
         });
         console.log("Tracking gestartet:", nickname);
 
-        await supabase.from("messages").insert({
-          room: room,
-          username: "System",
-          content: `Herzlich Willkommen im Chatpanda, ${nickname}!`,
-          type: "system",
-        });
+        const welcomeKey = `chatpanda_welcome_${room}_${nickname}`;
+        if (!sessionStorage.getItem(welcomeKey)) {
+          await supabase.from("messages").insert({
+            room: room,
+            username: "System",
+            content: `Herzlich Willkommen im Chatpanda, ${nickname}!`,
+            type: "system",
+          });
+          sessionStorage.setItem(welcomeKey, "true");
+        }
       }
     });
 
