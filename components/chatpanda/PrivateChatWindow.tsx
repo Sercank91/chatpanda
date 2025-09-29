@@ -72,7 +72,6 @@ export default function PrivateChatWindow({
     if (!input.trim() || !myNickname || !user) return;
 
     const text = input.trim();
-    setMessages((prev) => [...prev, { from: myNickname, text }]);
     setInput("");
 
     try {
