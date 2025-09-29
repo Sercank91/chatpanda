@@ -86,7 +86,7 @@ export default function ChatpandaPage() {
   }
 
   return (
-    <div className="flex flex-col style='height:91hv'">
+    <div className="flex flex-col h-screen">
       {/* Top bar h-screen */}
       <div className="border-b px-4 py-3 flex justify-between items-center sm:justify-end">
         <button
