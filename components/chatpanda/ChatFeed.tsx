@@ -23,8 +23,16 @@ export default function ChatFeed({ initial = [] }: Props) {
       )
       .subscribe();
 
+    // 🔹 Local Listener für Willkommensnachrichten
+    function handleLocalMessage(e: any) {
+      const msg = e.detail as Message;
+      setMessages((prev) => [...prev, msg]);
+    }
+    window.addEventListener("chatpanda-local-message", handleLocalMessage);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener("chatpanda-local-message", handleLocalMessage);
     };
   }, []);
 
