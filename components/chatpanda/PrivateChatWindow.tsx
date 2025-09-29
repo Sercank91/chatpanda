@@ -53,6 +53,7 @@ export default function PrivateChatWindow({
             message: string;
           };
 
+          // Nur Nachrichten akzeptieren, die dieses Fenster betreffen
           if (
             (m.from_nickname === user && m.to_nickname === myNickname) ||
             (m.from_nickname === myNickname && m.to_nickname === user)
@@ -72,7 +73,7 @@ export default function PrivateChatWindow({
     if (!input.trim() || !myNickname || !user) return;
 
     const text = input.trim();
-    setInput("");
+    setInput(""); // Eingabefeld sofort leeren
 
     try {
       const { error } = await supabase.from("private_messages").insert({
