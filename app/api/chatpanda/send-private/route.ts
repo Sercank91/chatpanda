@@ -18,22 +18,29 @@ export async function POST(req: NextRequest) {
     const to = body.to.trim();
     const message = body.message.trim();
 
-    // Flood-Schutz mit Redis
+    // ---- Flood-Schutz mit Redis ----
     const key = `privmsg:${from}`;
+    const windowSec = 15; // Zeitfenster 15s
+    const maxMsgs = 5; // max. 5 Nachrichten pro Fenster
+
     const count = await redis.incr(key);
 
     if (count === 1) {
-      await redis.expire(key, 10); // 10 Sekunden Fenster
+      await redis.expire(key, windowSec);
     }
 
-    if (count > 5) {
+    if (count > maxMsgs) {
+      const ttl = await redis.ttl(key); // Restzeit holen
       return NextResponse.json(
-        { error: "Zu viele Nachrichten – bitte kurz warten." },
+        {
+          error: "Zu viele Nachrichten – bitte kurz warten.",
+          retry_after: ttl > 0 ? ttl : windowSec,
+        },
         { status: 429 }
       );
     }
 
-    // In DB speichern
+    // ---- In DB speichern ----
     const { error } = await supabaseAdmin.from("private_messages").insert({
       from_nickname: from,
       to_nickname: to,
