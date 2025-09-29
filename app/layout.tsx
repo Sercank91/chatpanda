@@ -39,11 +39,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gray-950 text-gray-100`}
         >
-          {/* 🐼 Header fixiert oben */}
-          <Header />
-
-          {/* Content startet unterhalb vom Header */}
-          <main className="pt-14 h-screen">{children}</main>
+          <Header /> {/* 🐼 Panda-Header fixiert oben */}
+          {/* statt pt-14 jetzt Höhe berechnen */}
+          <main className="h-[calc(100vh-3rem)]">{children}</main>
         </body>
       </html>
     </ClerkProvider>
