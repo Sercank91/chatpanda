@@ -26,6 +26,7 @@ export default function ChatRoom({
   onUserClick?: (user: string, pos: { x: number; y: number }) => void;
 }) {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [blocked, setBlocked] = useState<string[]>([]);
 
   useEffect(() => {
     const nickname = localStorage.getItem("chatpanda_nickname") || "Gast";
@@ -63,12 +64,13 @@ export default function ChatRoom({
         }, {} as Record<string, OnlineUser>)
       );
 
-      // ⬇️ Blockliste laden und herausfiltern
+      // Blockliste laden
       const blockedRaw = localStorage.getItem("chatpanda_blocked");
-      const blocked: string[] = blockedRaw ? JSON.parse(blockedRaw) : [];
-      const filtered = unique.filter((u) => !blocked.includes(u.nickname));
+      const blockedList: string[] = blockedRaw ? JSON.parse(blockedRaw) : [];
+      setBlocked(blockedList);
 
-      setOnlineUsers(filtered);
+      // ❌ nicht mehr herausfiltern – alle anzeigen
+      setOnlineUsers(unique);
     });
 
     channel.subscribe(async (status) => {
@@ -111,10 +113,13 @@ export default function ChatRoom({
         <ul className="space-y-1">
           {onlineUsers.map((user, i) => {
             const g = genderMap[user.gender] || genderMap["u"];
+            const isBlocked = blocked.includes(user.nickname);
             return (
               <li
                 key={i}
-                className="flex items-center gap-2 text-gray-300 cursor-pointer hover:text-blue-400"
+                className={`flex items-center gap-2 cursor-pointer ${
+                  isBlocked ? "text-red-400" : "text-gray-300 hover:text-blue-400"
+                }`}
                 onClick={(e) => {
                   e.preventDefault();
                   if (onUserClick) {
@@ -127,6 +132,7 @@ export default function ChatRoom({
                 {user.device === "mobile" && (
                   <Smartphone className="w-4 h-4 text-green-400 ml-1" />
                 )}
+                {isBlocked && <span className="ml-1">🚫</span>}
               </li>
             );
           })}
