@@ -13,6 +13,7 @@ type PrivateChatWindowProps = {
 type Message = {
   from: string;
   text: string;
+  type?: "system" | "user";
 };
 
 export default function PrivateChatWindow({
@@ -64,7 +65,10 @@ export default function PrivateChatWindow({
             (m.from_nickname === user && m.to_nickname === myNickname) ||
             (m.from_nickname === myNickname && m.to_nickname === user)
           ) {
-            setMessages((prev) => [...prev, { from: m.from_nickname, text: m.message }]);
+            setMessages((prev) => [
+              ...prev,
+              { from: m.from_nickname, text: m.message, type: "user" },
+            ]);
           }
         }
       )
@@ -111,6 +115,12 @@ export default function PrivateChatWindow({
       if (!res.ok) {
         if (res.status === 429 && data.retry_after) {
           setCooldownUntil(Date.now() + data.retry_after * 1000);
+        } else if (res.status === 403) {
+          // ⬅️ Blockierungs-Info ins Chatfenster schreiben
+          setMessages((prev) => [
+            ...prev,
+            { from: "System", text: data.error || "Der Nutzer hat dich blockiert.", type: "system" },
+          ]);
         } else {
           console.error("❌ Fehler:", data.error || res.statusText);
         }
@@ -149,7 +159,12 @@ export default function PrivateChatWindow({
         <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
           {messages.length === 0 && <p className="text-gray-400">Noch keine Nachrichten</p>}
           {messages.map((m, i) => (
-            <div key={i} className="p-2 rounded bg-gray-800 text-left">
+            <div
+              key={i}
+              className={`p-2 rounded text-left ${
+                m.type === "system" ? "bg-red-800 text-red-200 italic" : "bg-gray-800"
+              }`}
+            >
               <span className="font-semibold">{m.from}:</span> {m.text}
             </div>
           ))}

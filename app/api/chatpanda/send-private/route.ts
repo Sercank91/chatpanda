@@ -18,6 +18,15 @@ export async function POST(req: NextRequest) {
     const to = body.to.trim();
     const message = body.message.trim();
 
+    // --- Blockierung prüfen ---
+    const isBlocked = await redis.get(`block:${to}:${from}`);
+    if (isBlocked) {
+      return NextResponse.json(
+        { error: "Nutzer hat dich blockiert.", system: true },
+        { status: 403 }
+      );
+    }
+
     // ---- Flood-Schutz Keys ----
     const keyCount = `privmsg:${from}:count`;
     const keyStrikes = `privmsg:${from}:strikes`;

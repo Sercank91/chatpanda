@@ -63,7 +63,12 @@ export default function ChatRoom({
         }, {} as Record<string, OnlineUser>)
       );
 
-      setOnlineUsers(unique);
+      // ⬇️ Blockliste laden und herausfiltern
+      const blockedRaw = localStorage.getItem("chatpanda_blocked");
+      const blocked: string[] = blockedRaw ? JSON.parse(blockedRaw) : [];
+      const filtered = unique.filter((u) => !blocked.includes(u.nickname));
+
+      setOnlineUsers(filtered);
     });
 
     channel.subscribe(async (status) => {
