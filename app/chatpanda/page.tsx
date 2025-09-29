@@ -87,7 +87,7 @@ export default function ChatpandaPage() {
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Top bar h-screen */}
+      {/* Top bar */}
       <div className="border-b px-4 py-3 flex justify-between items-center sm:justify-end">
         <button
           className="sm:hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -99,17 +99,22 @@ export default function ChatpandaPage() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex min-h-0 relative">
         {/* Messages */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 relative">
+          <div className="flex-1 overflow-y-auto p-4 pb-24">
             <ChatFeed />
+          </div>
+
+          {/* Chat input (fixed unten links, nicht über Userliste) */}
+          <div className="fixed bottom-0 left-0 right-80 border-t bg-gray-900 shadow-lg">
+            <ChatInput room="global" />
           </div>
         </div>
 
         {/* Online users (desktop) */}
-        <div className="hidden sm:flex w-80 border-l bg-gray-50/50">
-          <div className="w-full">
+        <div className="hidden sm:flex w-80 border-l bg-gray-900">
+          <div className="w-full overflow-y-auto">
             <ChatRoom
               room="global"
               onUserClick={(user, pos) => {
@@ -123,9 +128,9 @@ export default function ChatpandaPage() {
 
       {/* Mobile: Users overlay */}
       {showUsers && (
-        <div className="fixed inset-0 bg-white z-50 flex flex-col sm:hidden">
-          <div className="bg-white border-b px-4 py-3 flex justify-between items-center shadow-sm">
-            <h2 className="font-semibold text-gray-900">Online Users</h2>
+        <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col sm:hidden">
+          <div className="bg-gray-800 border-b px-4 py-3 flex justify-between items-center shadow-sm">
+            <h2 className="font-semibold text-white">Online Users</h2>
             <button
               onClick={() => setShowUsers(false)}
               className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -133,7 +138,7 @@ export default function ChatpandaPage() {
               Back to Chat
             </button>
           </div>
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
             <ChatRoom
               room="global"
               onUserClick={(user, pos) => {
@@ -144,11 +149,6 @@ export default function ChatpandaPage() {
           </div>
         </div>
       )}
-
-      {/* Chat input (fixed) */}
-      <div className="border-t bg-white shadow-lg">
-        <ChatInput room="global" />
-      </div>
 
       {/* Kontextmenü */}
       {contextUser && contextPos && (
@@ -196,7 +196,7 @@ export default function ChatpandaPage() {
               return updated;
             })
           }
-          initialMessages={messages} // ✅ Neue Nachrichten werden übergeben
+          initialMessages={messages}
         />
       ))}
     </div>
