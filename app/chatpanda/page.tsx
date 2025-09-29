@@ -12,6 +12,7 @@ type Message = { from: string; text: string };
 export default function ChatpandaPage() {
   const [nickname, setNickname] = useState<string | null>(null);
   const [gender, setGender] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false); // ✅ Neu
   const [showUsers, setShowUsers] = useState(false);
 
   const [contextUser, setContextUser] = useState<string | null>(null);
@@ -23,6 +24,7 @@ export default function ChatpandaPage() {
   useEffect(() => {
     setNickname(localStorage.getItem("chatpanda_nickname"));
     setGender(localStorage.getItem("chatpanda_gender"));
+    setLoaded(true); // ✅ Erst nach dem Lesen fertig
   }, []);
 
   // Klick außerhalb Kontextmenü
@@ -60,6 +62,15 @@ export default function ChatpandaPage() {
       supabase.removeChannel(channel).catch(() => {});
     };
   }, [nickname]);
+
+  // ✅ Während Laden "Lädt..." anzeigen
+  if (!loaded) {
+    return (
+      <div className="flex h-screen items-center justify-center text-gray-400">
+        Lädt...
+      </div>
+    );
+  }
 
   if (!nickname || !gender) {
     return (
