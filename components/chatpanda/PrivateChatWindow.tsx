@@ -25,16 +25,14 @@ export default function PrivateChatWindow({
   const [myNickname, setMyNickname] = useState("Ich");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // ----- Flood-Protection states (neu) -----
+  // Flood-Protection
   const [lastSent, setLastSent] = useState<number>(0);
-  const [history, setHistory] = useState<number[]>([]); // timestamps
+  const [history, setHistory] = useState<number[]>([]);
   const [cooldownUntil, setCooldownUntil] = useState<number>(0);
   const lastMessageRef = useRef<string>("");
 
-  // simple clock to re-render countdown
   const [tick, setTick] = useState(0);
 
-  // Nickname laden
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("chatpanda_nickname");
@@ -42,15 +40,13 @@ export default function PrivateChatWindow({
     }
   }, []);
 
-  // Initial nur einmal Nachrichten setzen
   useEffect(() => {
     if (initialMessages.length > 0) {
       setMessages(initialMessages);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentional: initialMessages used only once on mount
+  }, []);
 
-  // Realtime Subscription
   useEffect(() => {
     if (!myNickname || !user) return;
 
@@ -81,14 +77,12 @@ export default function PrivateChatWindow({
     };
   }, [myNickname, user]);
 
-  // Automatisches Scrollen nach unten
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
-  // Countdown ticking (re-render jede Sekunde, solange Sperre aktiv)
   useEffect(() => {
     let id: number | undefined;
     if (cooldownUntil > Date.now()) {
@@ -99,66 +93,62 @@ export default function PrivateChatWindow({
     };
   }, [cooldownUntil]);
 
-  // ----- Send-Handler mit Flood-Schutz (angepasst) -----
   async function handleSend() {
     const now = Date.now();
 
     if (!input.trim() || !myNickname || !user) return;
 
-    // 1) Maximale Länge
     if (input.length > 800) {
-      // Privatchat erlaubt evtl. etwas längere Nachrichten, passe an
       alert("Nachricht zu lang (max. 800 Zeichen).");
       return;
     }
 
-    // 2) Temporärer Block aktiv
     if (now < cooldownUntil) {
       const rest = Math.ceil((cooldownUntil - now) / 1000);
       alert(`Du bist noch ${rest}s blockiert wegen Flooding.`);
       return;
     }
 
-    // 3) Minimum-Zeit zwischen Nachrichten (z.B. 1s)
     if (now - lastSent < 1000) {
       alert("Bitte warte kurz zwischen Nachrichten.");
       return;
     }
 
-    // 4) Rate limit: max 8 Nachrichten pro 10 Sekunden (Privatchat großzügiger)
     const newHistory = [...history.filter((t) => now - t < 10000), now];
     if (newHistory.length > 8) {
-      setCooldownUntil(now + 30000); // 30s block
+      setCooldownUntil(now + 30000);
       setHistory(newHistory);
       alert("Zu viele Nachrichten – bitte kurz warten.");
       return;
     }
 
-    // 5) Duplicate protection (gleiche Nachricht wie zuletzt)
     if (lastMessageRef.current === input.trim()) {
       alert("Bitte nicht die gleiche Nachricht wiederholen.");
       return;
     }
 
-    // Wenn alle Checks OK -> senden
     const text = input.trim();
-    setInput(""); // clear UI immediately (optimistisch)
+    setInput("");
     setLastSent(now);
     setHistory(newHistory);
     lastMessageRef.current = text;
 
     try {
-      const { error } = await supabase.from("private_messages").insert({
-        from_nickname: myNickname,
-        to_nickname: user,
-        message: text,
+      // 🔥 jetzt via API mit Redis-Schutz
+      const res = await fetch("/api/chatpanda/send-private", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: myNickname,
+          to: user,
+          message: text,
+        }),
       });
 
-      if (error) {
-        console.error("Fehler beim Senden:", error.message);
-        alert("Fehler beim Senden der Nachricht.");
-      } else {
-        // optionally we could append the message locally, but the realtime subscription will add it
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || "Fehler beim Senden der Nachricht.");
+        return;
       }
     } catch (err) {
       console.error("Unerwarteter Fehler:", err);
@@ -197,7 +187,7 @@ export default function PrivateChatWindow({
               <span className="font-semibold">{m.from}:</span> {m.text}
             </div>
           ))}
-          <div ref={messagesEndRef} /> {/* Scroll-Anker */}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Eingabefeld */}
@@ -219,7 +209,9 @@ export default function PrivateChatWindow({
           <button
             onClick={handleSend}
             className={`ml-2 px-3 py-1 rounded text-sm ${
-              cooldownActive ? "bg-gray-700 text-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+              cooldownActive
+                ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
             } no-drag`}
             disabled={cooldownActive}
             title={cooldownActive ? `Gesperrt noch ${cooldownSeconds}s` : "Senden"}
