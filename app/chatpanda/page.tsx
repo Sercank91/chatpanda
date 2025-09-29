@@ -87,27 +87,26 @@ export default function ChatpandaPage() {
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Top bar */}
-      <div className="border-b px-4 py-3 flex justify-between items-center sm:justify-end">
+      {/* Top-Bar direkt unter Header */}
+      <div className="h-10 border-b px-4 flex justify-between items-center sm:justify-end bg-gray-950">
         <button
-          className="sm:hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          className="sm:hidden bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors"
           onClick={() => setShowUsers(!showUsers)}
         >
           Users ({showUsers ? "Hide" : "Show"})
         </button>
-        <span className="text-sm text-gray-700 font-medium">Hello, {nickname}</span>
+        <span className="text-sm text-gray-300 font-medium">Hello, {nickname}</span>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex min-h-0">
+      {/* Main content: Höhe = 100vh - Header (3rem) - Top-Bar (2.5rem) */}
+      <div className="flex h-[calc(100vh-3rem-2.5rem)]">
         {/* Chat + Input */}
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Scrollbarer Chatfeed mit Platz unten für Input */}
-          <div className="flex-1 overflow-y-auto p-4 pb-24">
+        <div className="flex-1 flex flex-col">
+          {/* Chatfeed */}
+          <div className="flex-1 overflow-y-auto p-4">
             <ChatFeed />
           </div>
-
-          {/* Fixiertes Input-Feld unten */}
+          {/* Input bleibt unten */}
           <div className="border-t bg-gray-900 shadow-lg p-2">
             <ChatInput room="global" />
           </div>
