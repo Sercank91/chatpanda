@@ -108,17 +108,22 @@ export default function PrivateChatWindow({
         {/* Header */}
         <div className="header cursor-move bg-blue-600 px-3 py-2 rounded-t-lg flex justify-between items-center">
           <span className="font-semibold">Privatchat mit {user}</span>
-          <button onClick={onClose} className="text-white hover:text-red-400">✖</button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // verhindert Konflikt mit Drag
+              onClose();
+            }}
+            className="text-white hover:text-red-400"
+          >
+            ✖
+          </button>
         </div>
 
         {/* Nachrichtenbereich */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
           {messages.length === 0 && <p className="text-gray-400">Noch keine Nachrichten</p>}
           {messages.map((m, i) => (
-            <div
-              key={i}
-              className="p-2 rounded bg-gray-800 text-left"
-            >
+            <div key={i} className="p-2 rounded bg-gray-800 text-left">
               <span className="font-semibold">{m.from}:</span> {m.text}
             </div>
           ))}
