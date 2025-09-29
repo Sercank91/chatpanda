@@ -25,6 +25,15 @@ export default function PrivateChatWindow({
   const [myNickname, setMyNickname] = useState("Ich");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  // ----- Flood-Protection states (neu) -----
+  const [lastSent, setLastSent] = useState<number>(0);
+  const [history, setHistory] = useState<number[]>([]); // timestamps
+  const [cooldownUntil, setCooldownUntil] = useState<number>(0);
+  const lastMessageRef = useRef<string>("");
+
+  // simple clock to re-render countdown
+  const [tick, setTick] = useState(0);
+
   // Nickname laden
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -33,12 +42,13 @@ export default function PrivateChatWindow({
     }
   }, []);
 
-  // Initial Nachrichten setzen (abhängig von initialMessages)
+  // Initial nur einmal Nachrichten setzen
   useEffect(() => {
     if (initialMessages.length > 0) {
       setMessages(initialMessages);
     }
-  }, [initialMessages]); // ✅ Dependency hinzugefügt
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentional: initialMessages used only once on mount
 
   // Realtime Subscription
   useEffect(() => {
@@ -78,11 +88,64 @@ export default function PrivateChatWindow({
     }
   }, [messages]);
 
+  // Countdown ticking (re-render jede Sekunde, solange Sperre aktiv)
+  useEffect(() => {
+    let id: number | undefined;
+    if (cooldownUntil > Date.now()) {
+      id = window.setInterval(() => setTick((t) => t + 1), 1000);
+    }
+    return () => {
+      if (id) clearInterval(id);
+    };
+  }, [cooldownUntil]);
+
+  // ----- Send-Handler mit Flood-Schutz (angepasst) -----
   async function handleSend() {
+    const now = Date.now();
+
     if (!input.trim() || !myNickname || !user) return;
 
+    // 1) Maximale Länge
+    if (input.length > 800) {
+      // Privatchat erlaubt evtl. etwas längere Nachrichten, passe an
+      alert("Nachricht zu lang (max. 800 Zeichen).");
+      return;
+    }
+
+    // 2) Temporärer Block aktiv
+    if (now < cooldownUntil) {
+      const rest = Math.ceil((cooldownUntil - now) / 1000);
+      alert(`Du bist noch ${rest}s blockiert wegen Flooding.`);
+      return;
+    }
+
+    // 3) Minimum-Zeit zwischen Nachrichten (z.B. 1s)
+    if (now - lastSent < 1000) {
+      alert("Bitte warte kurz zwischen Nachrichten.");
+      return;
+    }
+
+    // 4) Rate limit: max 8 Nachrichten pro 10 Sekunden (Privatchat großzügiger)
+    const newHistory = [...history.filter((t) => now - t < 10000), now];
+    if (newHistory.length > 8) {
+      setCooldownUntil(now + 30000); // 30s block
+      setHistory(newHistory);
+      alert("Zu viele Nachrichten – bitte kurz warten.");
+      return;
+    }
+
+    // 5) Duplicate protection (gleiche Nachricht wie zuletzt)
+    if (lastMessageRef.current === input.trim()) {
+      alert("Bitte nicht die gleiche Nachricht wiederholen.");
+      return;
+    }
+
+    // Wenn alle Checks OK -> senden
     const text = input.trim();
-    setInput("");
+    setInput(""); // clear UI immediately (optimistisch)
+    setLastSent(now);
+    setHistory(newHistory);
+    lastMessageRef.current = text;
 
     try {
       const { error } = await supabase.from("private_messages").insert({
@@ -91,18 +154,27 @@ export default function PrivateChatWindow({
         message: text,
       });
 
-      if (error) console.error("Fehler beim Senden:", error.message);
+      if (error) {
+        console.error("Fehler beim Senden:", error.message);
+        alert("Fehler beim Senden der Nachricht.");
+      } else {
+        // optionally we could append the message locally, but the realtime subscription will add it
+      }
     } catch (err) {
       console.error("Unerwarteter Fehler:", err);
     }
   }
+
+  const now = Date.now();
+  const cooldownActive = now < cooldownUntil;
+  const cooldownSeconds = cooldownActive ? Math.ceil((cooldownUntil - now) / 1000) : 0;
 
   return (
     <Rnd
       default={{ x: 100, y: 100, width: 300, height: 350 }}
       bounds="window"
       dragHandleClassName="header"
-      cancel=".no-drag"   // ✅ macht den Button klickbar!
+      cancel=".no-drag"
       enableResizing={false}
     >
       <div className="bg-gray-900 text-white rounded-lg shadow-xl border border-gray-700 h-full flex flex-col">
@@ -129,18 +201,28 @@ export default function PrivateChatWindow({
         </div>
 
         {/* Eingabefeld */}
-        <div className="border-t border-gray-700 p-2 flex">
+        <div className="border-t border-gray-700 p-2 flex items-center gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Nachricht..."
-            className="flex-1 bg-gray-800 px-2 py-1 rounded text-sm focus:outline-none"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder={cooldownActive ? `Warte ${cooldownSeconds}s` : "Nachricht..."}
+            disabled={cooldownActive}
+            className="flex-1 bg-gray-800 px-2 py-1 rounded text-sm focus:outline-none disabled:opacity-50"
           />
           <button
             onClick={handleSend}
-            className="ml-2 bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm"
+            className={`ml-2 px-3 py-1 rounded text-sm ${
+              cooldownActive ? "bg-gray-700 text-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+            } no-drag`}
+            disabled={cooldownActive}
+            title={cooldownActive ? `Gesperrt noch ${cooldownSeconds}s` : "Senden"}
           >
             ➤
           </button>
