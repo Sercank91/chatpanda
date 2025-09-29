@@ -2,11 +2,13 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
+import { Smartphone } from "lucide-react"; // ✅ Icon importiert
 
 type OnlineUser = {
   nickname: string;
   gender: string;
   online_at: string;
+  device?: "mobile" | "desktop";
 };
 
 const genderMap: Record<string, { icon: string; color: string }> = {
@@ -29,6 +31,9 @@ export default function ChatRoom({
     const nickname = localStorage.getItem("chatpanda_nickname") || "Gast";
     const gender = localStorage.getItem("chatpanda_gender") || "u";
 
+    // ✅ Mobile-Erkennung
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
     const channel = supabase.channel(`room:${room}`, {
       config: { presence: { key: nickname } },
     });
@@ -45,6 +50,7 @@ export default function ChatRoom({
               nickname: user.nickname,
               gender: user.gender ?? "u",
               online_at: user.online_at ?? new Date().toISOString(),
+              device: user.device ?? "desktop",
             });
           }
         });
@@ -60,6 +66,7 @@ export default function ChatRoom({
           nickname,
           gender,
           online_at: new Date().toISOString(),
+          device: isMobile ? "mobile" : "desktop", // ✅ Gerät mitgeben
         });
 
         const welcomeMsg = {
@@ -106,6 +113,9 @@ export default function ChatRoom({
               >
                 <span className={`${g.color} w-5 text-center inline-block`}>{g.icon}</span>
                 <span className="font-semibold">{user.nickname}</span>
+                {user.device === "mobile" && (
+                  <Smartphone className="w-4 h-4 text-green-400 ml-1" />
+                )}
               </li>
             );
           })}
