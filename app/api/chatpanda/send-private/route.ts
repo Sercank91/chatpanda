@@ -1,4 +1,3 @@
-// app/api/chatpanda/send-private/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { redis } from "@/lib/redis";
@@ -18,11 +17,12 @@ export async function POST(req: NextRequest) {
     const to = body.to.trim();
     const message = body.message.trim();
 
-    // --- Blockierung prüfen ---
-    const isBlocked = await redis.get(`block:${to}:${from}`);
+    // --- Blockierung zuerst prüfen ---
+    const blockKey = `block:${to}:${from}`;
+    const isBlocked = await redis.get(blockKey);
     if (isBlocked) {
       return NextResponse.json(
-        { error: "Nutzer hat dich blockiert.", system: true },
+        { error: "Dieser Nutzer hat dich blockiert.", system: true },
         { status: 403 }
       );
     }
@@ -34,34 +34,27 @@ export async function POST(req: NextRequest) {
     const windowSec = 15; // Zählfenster 15s
     const maxMsgs = 5; // max. 5 Nachrichten pro Fenster
 
-    // Nachrichtenzähler erhöhen
     const count = await redis.incr(keyCount);
     if (count === 1) {
       await redis.expire(keyCount, windowSec);
     }
 
     if (count > maxMsgs) {
-      // Strike-Zähler hoch
       const strikes = await redis.incr(keyStrikes);
       if (strikes === 1) {
-        await redis.expire(keyStrikes, 3600); // 1 Stunde gültig
+        await redis.expire(keyStrikes, 3600); // 1h gültig
       }
 
-      // Strafzeit bestimmen
       let retry_after = 15;
       if (strikes === 2) retry_after = 30;
       else if (strikes === 3) retry_after = 60;
       else if (strikes >= 4) retry_after = 300;
 
-      // Sperre in Redis setzen
       const banKey = `privmsg:${from}:ban`;
       await redis.set(banKey, "1", "EX", retry_after);
 
       return NextResponse.json(
-        {
-          error: "Zu viele Nachrichten – bitte kurz warten.",
-          retry_after,
-        },
+        { error: "Zu viele Nachrichten – bitte kurz warten.", retry_after },
         { status: 429 }
       );
     }
@@ -71,10 +64,7 @@ export async function POST(req: NextRequest) {
     const ttl = await redis.ttl(banKey);
     if (ttl > 0) {
       return NextResponse.json(
-        {
-          error: "Du bist temporär gesperrt.",
-          retry_after: ttl,
-        },
+        { error: "Du bist temporär gesperrt.", retry_after: ttl },
         { status: 429 }
       );
     }

@@ -1,4 +1,3 @@
-// components/chatpanda/PrivateChatWindow.tsx
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { Rnd } from "react-rnd";
@@ -40,7 +39,7 @@ export default function PrivateChatWindow({
   // Initial nur einmal Nachrichten setzen
   useEffect(() => {
     if (initialMessages.length > 0) {
-      setMessages(initialMessages);
+      setMessages(initialMessages.map((m) => ({ ...m, type: "user" })));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -116,10 +115,14 @@ export default function PrivateChatWindow({
         if (res.status === 429 && data.retry_after) {
           setCooldownUntil(Date.now() + data.retry_after * 1000);
         } else if (res.status === 403) {
-          // ⬅️ Blockierungs-Info ins Chatfenster schreiben
+          // ⬅️ Systemmeldung ins Chatfenster schreiben
           setMessages((prev) => [
             ...prev,
-            { from: "System", text: data.error || "Der Nutzer hat dich blockiert.", type: "system" },
+            {
+              from: "System",
+              text: data.error || "Dieser Nutzer hat dich blockiert.",
+              type: "system",
+            },
           ]);
         } else {
           console.error("❌ Fehler:", data.error || res.statusText);
