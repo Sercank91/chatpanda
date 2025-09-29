@@ -59,7 +59,7 @@ export default function ChatpandaPage() {
         (payload) => {
           const m = payload.new as { from_nickname: string; message: string };
           if (m?.from_nickname) {
-            // Wenn blockiert → ignorieren
+            // Wenn blockiert → ignorierenn
             if (blockedUsers.includes(m.from_nickname)) return;
 
             setPrivateChats((prev) => {
