@@ -31,7 +31,7 @@ export default function ChatpandaPage() {
     }
   }, []);
 
-  // Klick außerhalb Kontextmenü!
+  // Klick außerhalb Kontextmenü
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
