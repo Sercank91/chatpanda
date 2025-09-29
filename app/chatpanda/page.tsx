@@ -7,22 +7,17 @@ import ChatRoom from "./ChatRoom";
 import PrivateChatWindow from "@/components/chatpanda/PrivateChatWindow";
 import { supabase } from "@/lib/supabase/browser";
 
-type Message = {
-  from: string;
-  text: string;
-};
+type Message = { from: string; text: string };
 
 export default function ChatpandaPage() {
   const [nickname, setNickname] = useState<string | null>(null);
   const [gender, setGender] = useState<string | null>(null);
   const [showUsers, setShowUsers] = useState(false);
 
-  // Kontextmenü
   const [contextUser, setContextUser] = useState<string | null>(null);
   const [contextPos, setContextPos] = useState<{ x: number; y: number } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
-  // Offene Chats + Nachrichten
   const [privateChats, setPrivateChats] = useState<Record<string, Message[]>>({});
 
   useEffect(() => {
@@ -30,7 +25,7 @@ export default function ChatpandaPage() {
     setGender(localStorage.getItem("chatpanda_gender"));
   }, []);
 
-  // Klick außerhalb schließt Kontextmenü
+  // Klick außerhalb Kontextmenü
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
@@ -42,71 +37,50 @@ export default function ChatpandaPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Eingehende private Nachrichten -> Fenster automatisch öffnen
+  // Private Nachrichten
   useEffect(() => {
     if (!nickname) return;
-
     const channel = supabase
       .channel(`inbox:${nickname}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "private_messages",
-          filter: `to_nickname=eq.${nickname}`,
-        },
+        { event: "INSERT", schema: "public", table: "private_messages", filter: `to_nickname=eq.${nickname}` },
         (payload) => {
           const m = payload.new as { from_nickname: string; message: string };
-
-          if (m && m.from_nickname) {
+          if (m?.from_nickname) {
             setPrivateChats((prev) => {
               const current = prev[m.from_nickname] || [];
-              return {
-                ...prev,
-                [m.from_nickname]: [...current, { from: m.from_nickname, text: m.message }],
-              };
+              return { ...prev, [m.from_nickname]: [...current, { from: m.from_nickname, text: m.message }] };
             });
           }
         }
       )
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => supabase.removeChannel(channel);
   }, [nickname]);
 
   if (!nickname || !gender) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-red-500">
+      <div className="flex h-screen items-center justify-center text-red-500">
         Kein Nickname gefunden. Bitte gehe zurück zur Startseite.
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Top-Bar direkt unter Header */}
-      <div className="h-10 border-b px-4 flex justify-between items-center sm:justify-end bg-gray-950">
-        <button
-          className="sm:hidden bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors"
-          onClick={() => setShowUsers(!showUsers)}
-        >
-          Users ({showUsers ? "Hide" : "Show"})
-        </button>
-        <span className="text-sm text-gray-300 font-medium">Hello, {nickname}</span>
+    <div className="flex flex-col h-[calc(100vh-3rem)]"> {/* 3rem = Header Höhe */}
+      {/* Begrüßung */}
+      <div className="border-b bg-gray-900 px-4 py-2 text-sm text-gray-300">
+        Hallo, <span className="font-semibold text-purple-400">{nickname}</span>
       </div>
 
-      {/* Main content: Höhe = 100vh - Header (3rem) - Top-Bar (2.5rem) */}
-      <div className="flex h-[calc(100vh-3rem-2.5rem)]">
+      {/* Main content */}
+      <div className="flex-1 flex min-h-0">
         {/* Chat + Input */}
-        <div className="flex-1 flex flex-col">
-          {/* Chatfeed */}
-          <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto p-4 pb-24">
             <ChatFeed />
           </div>
-          {/* Input bleibt unten */}
           <div className="border-t bg-gray-900 shadow-lg p-2">
             <ChatInput room="global" />
           </div>
@@ -167,9 +141,7 @@ export default function ChatpandaPage() {
               className="px-3 py-2 hover:bg-gray-700 cursor-pointer"
               onClick={() => {
                 setPrivateChats((prev) => {
-                  if (!prev[contextUser]) {
-                    return { ...prev, [contextUser]: [] };
-                  }
+                  if (!prev[contextUser]) return { ...prev, [contextUser]: [] };
                   return prev;
                 });
                 setContextUser(null);
@@ -177,14 +149,12 @@ export default function ChatpandaPage() {
             >
               💬 Privatchat im Fenster
             </li>
-            <li className="px-3 py-2 hover:bg-gray-700 cursor-pointer text-red-400">
-              🚫 Nachrichten blockieren
-            </li>
+            <li className="px-3 py-2 hover:bg-gray-700 cursor-pointer text-red-400">🚫 Nachrichten blockieren</li>
           </ul>
         </div>
       )}
 
-      {/* Offene Privatchats */}
+      {/* Private Chatfenster */}
       {Object.entries(privateChats).map(([user, messages]) => (
         <PrivateChatWindow
           key={user}
