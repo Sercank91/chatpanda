@@ -71,9 +71,20 @@ export default function ChatpandaPage() {
 
   return (
     <div className="flex flex-col h-screen pt-14">
-      {/* Begrüßung direkt unter dem Header */}
-      <div className="border-b bg-gray-900 px-4 py-2 text-sm text-gray-300 text-right">
-        Hallo, <span className="font-semibold text-purple-400">{nickname}</span>
+      {/* Begrüßung + Mobile Button */}
+      <div className="border-b bg-gray-900 px-4 py-2 text-sm text-gray-300 flex justify-between items-center">
+        {/* 👥 Button nur auf Mobile */}
+        <button
+          onClick={() => setShowUsers(!showUsers)}
+          className="sm:hidden text-gray-200 hover:text-white transition-colors text-lg"
+        >
+          👥
+        </button>
+
+        {/* Hallo, nickname rechts */}
+        <div className="ml-auto">
+          Hallo, <span className="font-semibold text-purple-400">{nickname}</span>
+        </div>
       </div>
 
       {/* Main content */}
@@ -137,34 +148,21 @@ export default function ChatpandaPage() {
             Benutzer: {contextUser}
           </div>
           <ul className="divide-y divide-gray-700">
-            {/* Benutzer-Statistik immer sichtbar */}
-            <li className="px-3 py-2 hover:bg-gray-700 cursor-pointer">
-              📊 Benutzer-Statistik
+            <li className="px-3 py-2 hover:bg-gray-700 cursor-pointer">📊 Benutzer-Statistik</li>
+            <li className="px-3 py-2 hover:bg-gray-700 cursor-pointer">🙋 Benutzer ansprechen</li>
+            <li
+              className="px-3 py-2 hover:bg-gray-700 cursor-pointer"
+              onClick={() => {
+                setPrivateChats((prev) => {
+                  if (!prev[contextUser]) return { ...prev, [contextUser]: [] };
+                  return prev;
+                });
+                setContextUser(null);
+              }}
+            >
+              💬 Privatchat im Fenster
             </li>
-
-            {/* Nur anzeigen, wenn nicht der eigene Nickname */}
-            {contextUser !== nickname && (
-              <>
-                <li className="px-3 py-2 hover:bg-gray-700 cursor-pointer">
-                  🙋 Benutzer ansprechen
-                </li>
-                <li
-                  className="px-3 py-2 hover:bg-gray-700 cursor-pointer"
-                  onClick={() => {
-                    setPrivateChats((prev) => {
-                      if (!prev[contextUser]) return { ...prev, [contextUser]: [] };
-                      return prev;
-                    });
-                    setContextUser(null);
-                  }}
-                >
-                  💬 Privatchat im Fenster
-                </li>
-                <li className="px-3 py-2 hover:bg-gray-700 cursor-pointer text-red-400">
-                  🚫 Nachrichten blockieren
-                </li>
-              </>
-            )}
+            <li className="px-3 py-2 hover:bg-gray-700 cursor-pointer text-red-400">🚫 Nachrichten blockieren</li>
           </ul>
         </div>
       )}
