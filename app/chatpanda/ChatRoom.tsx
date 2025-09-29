@@ -18,7 +18,6 @@ const genderMap: Record<string, { icon: string; color: string }> = {
   u: { icon: "?", color: "text-gray-400" }, // fallback für unbekannt
 };
 
-// 🔹 Props erweitert um onUserClick
 export default function ChatRoom({
   room,
   onUserClick,
@@ -39,14 +38,21 @@ export default function ChatRoom({
     // 👥 JOIN Event -> nur für wirklich neue User
     channel.on("presence", { event: "join" }, async ({ newPresences }) => {
       if (!newPresences?.length) return;
-      const user = newPresences[0] as OnlineUser;
 
-      if (user.nickname === nickname) return; // eigene Join-Meldung ignorieren
+      // ✅ Typisierung absichern
+      const raw = newPresences[0] as unknown as {
+        nickname?: string;
+        gender?: string;
+        online_at?: string;
+      };
+      if (!raw.nickname) return;
+
+      if (raw.nickname === nickname) return; // eigene Join-Meldung ignorieren
 
       await supabase.from("messages").insert({
         room,
         username: "System",
-        content: `${user.nickname} ist dem Raum beigetreten.`,
+        content: `${raw.nickname} ist dem Raum beigetreten.`,
         type: "system",
       });
     });
@@ -62,13 +68,13 @@ export default function ChatRoom({
       });
     });
 
-    // 👥 Sync → Liste der User aktualisieren
+    // 🔄 SYNC → Online-Liste aktualisieren
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
       const users: OnlineUser[] = [];
 
       Object.values(state).forEach((arr) => {
-        (arr as unknown as OnlineUser[]).forEach((user: OnlineUser) => {
+        (arr as unknown as OnlineUser[]).forEach((user) => {
           if (user.nickname) {
             users.push({
               nickname: user.nickname,
@@ -82,7 +88,7 @@ export default function ChatRoom({
       setOnlineUsers(users);
     });
 
-    // ✅ Willkommen nur für eigenen Eintritt
+    // ✅ Willkommensnachricht nur für eigenen Eintritt
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         channel.track({
