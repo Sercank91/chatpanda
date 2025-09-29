@@ -16,38 +16,36 @@ export default function ChatInput({ room }: { room: string }) {
 
     if (!message.trim()) return;
 
-    // 1. Max Länge
+    // ⛔ Max Länge
     if (message.length > 300) {
       setError("Nachricht zu lang (max. 300 Zeichen).");
       return;
     }
 
-    // 2. Temporärer Block aktiv
-    if (now < cooldownUntil) {
-      return;
-    }
+    // ⛔ Lokaler Cooldown aktiv
+    if (now < cooldownUntil) return;
 
-    // 3. Mindestens 2 Sekunden zwischen Nachrichten
+    // ⛔ Mindestens 2 Sekunden Abstand
     if (now - lastSent < 2000) {
       setError("Bitte warte mindestens 2 Sekunden zwischen Nachrichten.");
       return;
     }
 
-    // 4. Rate Limit – max. 5 Nachrichten pro 15 Sekunden
+    // ⛔ Rate-Limit Clientseitig (max 5 in 15s)
     const newHistory = [...history.filter((t) => now - t < 15000), now];
     if (newHistory.length > 5) {
-      setCooldownUntil(now + 30000); // 30 Sekunden block
+      setCooldownUntil(now + 30000); // 30s Sperre
       setError("Flood erkannt! Du bist 30 Sekunden blockiert.");
       return;
     }
 
-    // 5. Gleiche Nachricht wie zuletzt → blocken
+    // ⛔ Wiederholung derselben Nachricht
     if (lastMessageRef.current === message.trim()) {
       setError("Bitte nicht die gleiche Nachricht wiederholen.");
       return;
     }
 
-    // Nickname & Gender
+    // Daten vorbereiten
     const nickname = localStorage.getItem("chatpanda_nickname");
     const gender = localStorage.getItem("chatpanda_gender");
 
@@ -64,28 +62,33 @@ export default function ChatInput({ room }: { room: string }) {
       });
 
       const data = await res.json().catch(() => ({}));
-      console.log("API Response:", res.status, data);
 
       if (!res.ok) {
-        setError(data.error || "Fehler beim Senden der Nachricht.");
+        // ⛔ Server hat Flood erkannt → Client sofort sperren
+        if (data.error?.includes("Zu viele Nachrichten")) {
+          setCooldownUntil(now + 30000);
+          setError("Zu viele Nachrichten – bitte kurz warten.");
+        } else {
+          setError(data.error || "Fehler beim Senden.");
+        }
         return;
       }
 
+      // ✅ Erfolgreich
       setMessage("");
       setLastSent(now);
       setHistory(newHistory);
       lastMessageRef.current = message.trim();
-      setError(null); // ✅ Fehler zurücksetzen
+      setError(null);
     } catch (err) {
       console.error("Network error:", err);
       setError("Netzwerkfehler beim Senden – bitte erneut versuchen.");
     }
   }
 
-  // Countdown aktualisieren
+  // Countdown für Cooldown
   useEffect(() => {
     if (!cooldownUntil) return;
-
     const interval = setInterval(() => {
       const diff = cooldownUntil - Date.now();
       if (diff <= 0) {
@@ -97,7 +100,6 @@ export default function ChatInput({ room }: { room: string }) {
         setTimeLeft(Math.ceil(diff / 1000));
       }
     }, 1000);
-
     return () => clearInterval(interval);
   }, [cooldownUntil]);
 
@@ -134,7 +136,6 @@ export default function ChatInput({ room }: { room: string }) {
         </button>
       </div>
 
-      {/* ✅ Hinweis */}
       {error && <p className="text-red-400 text-xs">{error}</p>}
     </form>
   );
