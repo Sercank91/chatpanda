@@ -20,7 +20,7 @@ export default function PrivateChatWindow({
   onClose,
   initialMessages = [],
 }: PrivateChatWindowProps) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [myNickname, setMyNickname] = useState("Ich");
 
@@ -32,10 +32,12 @@ export default function PrivateChatWindow({
     }
   }, []);
 
-  // ✅ Synchronisierung mit page.tsx
+  // ✅ Initial nur einmal Nachrichten setzen
   useEffect(() => {
-    setMessages(initialMessages);
-  }, [initialMessages]);
+    if (initialMessages.length > 0) {
+      setMessages(initialMessages);
+    }
+  }, []); // nur einmal beim Mount
 
   // Realtime Subscription
   useEffect(() => {
@@ -53,7 +55,6 @@ export default function PrivateChatWindow({
             message: string;
           };
 
-          // Nur Nachrichten akzeptieren, die dieses Fenster betreffen
           if (
             (m.from_nickname === user && m.to_nickname === myNickname) ||
             (m.from_nickname === myNickname && m.to_nickname === user)
@@ -73,7 +74,7 @@ export default function PrivateChatWindow({
     if (!input.trim() || !myNickname || !user) return;
 
     const text = input.trim();
-    setInput(""); // Eingabefeld sofort leeren
+    setInput(""); // Eingabe sofort leeren
 
     try {
       const { error } = await supabase.from("private_messages").insert({
