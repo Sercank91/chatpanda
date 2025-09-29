@@ -26,7 +26,7 @@ export default function ChatRoom({
   onUserClick?: (user: string, pos: { x: number; y: number }) => void;
 }) {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
-  const [welcomeSent, setWelcomeSent] = useState(false);
+  const [welcomeSent, setWelcomeSent] = useState(false); // 👈 verhindert Spam
 
   useEffect(() => {
     const nickname = localStorage.getItem("chatpanda_nickname") || "Gast";
@@ -37,7 +37,7 @@ export default function ChatRoom({
       config: { presence: { key: nickname } },
     });
 
-    // Präsenz aktualisieren
+    // Präsenz-Änderungen
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
       const users: OnlineUser[] = [];
@@ -55,15 +55,15 @@ export default function ChatRoom({
         });
       });
 
-      // 🔑 doppelte User rausfiltern
+      // ✅ doppelte User entfernen
       const unique = users.filter(
-        (u, idx, arr) => arr.findIndex((x) => x.nickname === u.nickname) === idx
+        (u, i, arr) => arr.findIndex((x) => x.nickname === u.nickname) === i
       );
 
       setOnlineUsers(unique);
     });
 
-    // subscribe + track
+    // Track + Systemnachricht nur 1×
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         channel.track({
@@ -73,7 +73,6 @@ export default function ChatRoom({
           device: isMobile ? "mobile" : "desktop",
         });
 
-        // Systemnachricht nur 1× pro Sitzung
         if (!welcomeSent) {
           const welcomeMsg = {
             id: `local-${Date.now()}`,
@@ -111,27 +110,19 @@ export default function ChatRoom({
                 className="flex items-center gap-2 text-gray-300 cursor-pointer hover:text-blue-400"
                 onClick={(e) => {
                   e.preventDefault();
-                  // 🔑 Eigener User → nur Statistik
+                  // 👇 Eigener User: nur Statistik erlauben
                   if (user.nickname === currentUser) {
                     if (onUserClick) {
-                      onUserClick(user.nickname, {
-                        x: e.clientX,
-                        y: e.clientY,
-                      });
+                      onUserClick(user.nickname, { x: e.clientX, y: e.clientY });
                     }
                     return;
                   }
                   if (onUserClick) {
-                    onUserClick(user.nickname, {
-                      x: e.clientX,
-                      y: e.clientY,
-                    });
+                    onUserClick(user.nickname, { x: e.clientX, y: e.clientY });
                   }
                 }}
               >
-                <span className={`${g.color} w-5 text-center inline-block`}>
-                  {g.icon}
-                </span>
+                <span className={`${g.color} w-5 text-center inline-block`}>{g.icon}</span>
                 <span className="font-semibold">{user.nickname}</span>
                 {user.device === "mobile" && (
                   <Smartphone className="w-4 h-4 text-green-400 ml-1" />
