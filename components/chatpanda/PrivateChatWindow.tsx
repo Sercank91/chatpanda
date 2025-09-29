@@ -25,12 +25,7 @@ export default function PrivateChatWindow({
   const [myNickname, setMyNickname] = useState("Ich");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Flood-Protection States
-  const [lastSent, setLastSent] = useState<number>(0);
-  const [history, setHistory] = useState<number[]>([]);
   const [cooldownUntil, setCooldownUntil] = useState<number>(0);
-  const lastMessageRef = useRef<string>("");
-
   const [tick, setTick] = useState(0);
 
   // Nickname laden
@@ -99,61 +94,30 @@ export default function PrivateChatWindow({
   }, [cooldownUntil]);
 
   async function handleSend() {
-    const now = Date.now();
     if (!input.trim() || !myNickname || !user) return;
-
-    // Maximale Länge
-    if (input.length > 800) {
-      alert("Nachricht zu lang (max. 800 Zeichen).");
-      return;
-    }
-
-    // Lokaler Block aktiv
-    if (now < cooldownUntil) return;
-
-    // Minimum Zeit
-    if (now - lastSent < 1000) return;
-
-    // Rate Limit (lokal, Sicherheitsnetz)
-    const newHistory = [...history.filter((t) => now - t < 10000), now];
-    if (newHistory.length > 8) {
-      setCooldownUntil(now + 30000);
-      setHistory(newHistory);
-      return;
-    }
-
-    // Duplikat
-    if (lastMessageRef.current === input.trim()) return;
 
     const text = input.trim();
     setInput("");
-    lastMessageRef.current = text;
 
     try {
       const res = await fetch("/api/chatpanda/send-private", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from: myNickname,
-          to: user,
-          message: text,
-        }),
+        body: JSON.stringify({ from: myNickname, to: user, message: text }),
       });
 
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         if (res.status === 429 && data.retry_after) {
-          // ⬅️ Redis Block übernehmen
           setCooldownUntil(Date.now() + data.retry_after * 1000);
+        } else {
+          console.error("❌ Fehler:", data.error || res.statusText);
         }
         return;
       }
-
-      setLastSent(now);
-      setHistory(newHistory);
     } catch (err) {
-      console.error("Unerwarteter Fehler:", err);
+      console.error("🔥 Netzwerkfehler:", err);
     }
   }
 
