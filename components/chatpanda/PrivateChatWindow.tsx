@@ -108,12 +108,10 @@ export default function PrivateChatWindow({
         {/* Header */}
         <div className="header cursor-move bg-blue-600 px-3 py-2 rounded-t-lg flex justify-between items-center">
           <span className="font-semibold">Privatchat mit {user}</span>
+          {/* Close-Button darf NICHT draggable sein */}
           <button
-            onClick={(e) => {
-              e.stopPropagation(); // verhindert Konflikt mit Drag
-              onClose();
-            }}
-            className="text-white hover:text-red-400"
+            onClick={onClose}
+            className="no-drag text-white hover:text-red-400 px-2 py-1"
           >
             ✖
           </button>
