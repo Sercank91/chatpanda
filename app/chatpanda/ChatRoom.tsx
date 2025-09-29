@@ -81,7 +81,8 @@ export default function ChatRoom({
       setOnlineUsers(users);
     });
 
-    channel.subscribe((status) => {
+    // 🔹 Willkommensnachricht beim eigenen Eintritt
+    channel.subscribe(async (status) => {
       console.log("Channel Status:", status);
       if (status === "SUBSCRIBED") {
         channel.track({
@@ -90,6 +91,13 @@ export default function ChatRoom({
           online_at: new Date().toISOString(),
         });
         console.log("Tracking gestartet:", nickname);
+
+        await supabase.from("messages").insert({
+          room: room,
+          username: "System",
+          content: `Herzlich Willkommen im Chatpanda, ${nickname}!`,
+          type: "system",
+        });
       }
     });
 
