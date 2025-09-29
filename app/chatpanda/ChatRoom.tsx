@@ -10,6 +10,14 @@ type OnlineUser = {
   online_at: string;
 };
 
+// 🔹 Mapping für Geschlecht
+const genderMap: Record<string, { icon: string; color: string }> = {
+  m: { icon: "♂️", color: "text-blue-400" },
+  w: { icon: "♀️", color: "text-pink-400" },
+  d: { icon: "⚧", color: "text-purple-400" },
+  u: { icon: "?", color: "text-gray-400" }, // fallback für unbekannt
+};
+
 // 🔹 Props erweitert um onUserClick
 export default function ChatRoom({
   room,
@@ -28,7 +36,6 @@ export default function ChatRoom({
       config: { presence: { key: nickname } },
     });
 
-    // Events registrieren
     channel.on("presence", { event: "join" }, ({ key, newPresences }) => {
       console.log("JOIN:", key, newPresences);
     });
@@ -58,7 +65,6 @@ export default function ChatRoom({
       setOnlineUsers(users);
     });
 
-    // Jetzt erst subscriben
     channel.subscribe((status) => {
       console.log("Channel Status:", status);
       if (status === "SUBSCRIBED") {
@@ -83,24 +89,29 @@ export default function ChatRoom({
         <p className="text-gray-400 text-sm">Niemand ist online.</p>
       ) : (
         <ul className="space-y-1">
-          {onlineUsers.map((user, i) => (
-            <li
-              key={i}
-              className="text-gray-300 cursor-pointer hover:text-blue-400"
-              onClick={(e) => {
-                e.preventDefault();
-                if (onUserClick) {
-                  onUserClick(user.nickname, {
-                    x: e.clientX,
-                    y: e.clientY,
-                  });
-                }
-              }}
-            >
-              <span className="font-semibold">{user.nickname}</span>{" "}
-              <span className="text-gray-500 text-sm">({user.gender})</span>
-            </li>
-          ))}
+          {onlineUsers.map((user, i) => {
+            const g = genderMap[user.gender] || genderMap["u"];
+            return (
+              <li
+                key={i}
+                className="flex items-center gap-2 text-gray-300 cursor-pointer hover:text-blue-400"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (onUserClick) {
+                    onUserClick(user.nickname, {
+                      x: e.clientX,
+                      y: e.clientY,
+                    });
+                  }
+                }}
+              >
+                {/* Links: Geschlecht */}
+                <span className={g.color}>{g.icon}</span>
+                {/* Rechts: Nickname */}
+                <span className="font-semibold">{user.nickname}</span>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
