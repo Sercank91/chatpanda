@@ -36,8 +36,9 @@ export default function ChatRoom({
       config: { presence: { key: nickname } },
     });
 
-    // 👥 JOIN Event -> Systemnachricht
+    // 👥 JOIN Event -> nur für andere
     channel.on("presence", { event: "join" }, async ({ key }) => {
+      if (key === nickname) return; // eigene Join-Meldung ignorieren
       console.log("JOIN:", key);
       await supabase.from("messages").insert({
         room: room,
@@ -47,8 +48,9 @@ export default function ChatRoom({
       });
     });
 
-    // 👋 LEAVE Event -> Systemnachricht
+    // 👋 LEAVE Event -> nur für andere
     channel.on("presence", { event: "leave" }, async ({ key }) => {
+      if (key === nickname) return; // eigene Leave-Meldung ignorieren
       console.log("LEAVE:", key);
       await supabase.from("messages").insert({
         room: room,
