@@ -1,11 +1,28 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export default function ChatInput({ room }: { room: string }) {
   const [message, setMessage] = useState("");
   const [lastSent, setLastSent] = useState<number>(0);
   const [history, setHistory] = useState<number[]>([]);
   const lastMessageRef = useRef<string>("");
+
+  // ⏳ State für Cooldown
+  const [cooldownActive, setCooldownActive] = useState(false);
+
+  useEffect(() => {
+    if (!lastSent) return;
+    setCooldownActive(true);
+
+    const interval = setInterval(() => {
+      if (Date.now() - lastSent >= 1000) {
+        setCooldownActive(false);
+        clearInterval(interval);
+      }
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [lastSent]);
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
@@ -18,9 +35,7 @@ export default function ChatInput({ room }: { room: string }) {
       return;
     }
 
-    if (now - lastSent < 1000) {
-      return; // ⏳ statt alert → Button zeigt Disabled
-    }
+    if (cooldownActive) return;
 
     const newHistory = [...history.filter((t) => now - t < 10000), now];
     if (newHistory.length > 5) {
@@ -65,8 +80,6 @@ export default function ChatInput({ room }: { room: string }) {
       alert("Netzwerkfehler beim Senden – bitte Konsole (F12) prüfen.");
     }
   }
-
-  const cooldownActive = Date.now() - lastSent < 1000;
 
   return (
     <form
