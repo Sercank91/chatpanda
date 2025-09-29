@@ -25,13 +25,14 @@ export default function PrivateChatWindow({
   const [myNickname, setMyNickname] = useState("Ich");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Flood-Protection
+  // Flood-Protection states
   const [lastSent, setLastSent] = useState<number>(0);
   const [history, setHistory] = useState<number[]>([]);
   const [cooldownUntil, setCooldownUntil] = useState<number>(0);
   const lastMessageRef = useRef<string>("");
 
-  const [tick, setTick] = useState(0);
+  // clock for countdown
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -83,6 +84,7 @@ export default function PrivateChatWindow({
     }
   }, [messages]);
 
+  // countdown re-render
   useEffect(() => {
     let id: number | undefined;
     if (cooldownUntil > Date.now()) {
@@ -98,34 +100,22 @@ export default function PrivateChatWindow({
 
     if (!input.trim() || !myNickname || !user) return;
 
-    if (input.length > 800) {
-      alert("Nachricht zu lang (max. 800 Zeichen).");
-      return;
-    }
+    // block if cooldown
+    if (now < cooldownUntil) return;
 
-    if (now < cooldownUntil) {
-      const rest = Math.ceil((cooldownUntil - now) / 1000);
-      alert(`Du bist noch ${rest}s blockiert wegen Flooding.`);
-      return;
-    }
+    // limit: min 2s zwischen Nachrichten
+    if (now - lastSent < 2000) return;
 
-    if (now - lastSent < 1000) {
-      alert("Bitte warte kurz zwischen Nachrichten.");
-      return;
-    }
-
-    const newHistory = [...history.filter((t) => now - t < 10000), now];
-    if (newHistory.length > 8) {
-      setCooldownUntil(now + 30000);
+    // limit: max 5 Nachrichten pro 15s
+    const newHistory = [...history.filter((t) => now - t < 15000), now];
+    if (newHistory.length > 5) {
+      setCooldownUntil(now + 30000); // 30s sperre
       setHistory(newHistory);
-      alert("Zu viele Nachrichten – bitte kurz warten.");
       return;
     }
 
-    if (lastMessageRef.current === input.trim()) {
-      alert("Bitte nicht die gleiche Nachricht wiederholen.");
-      return;
-    }
+    // keine duplicate messages
+    if (lastMessageRef.current === input.trim()) return;
 
     const text = input.trim();
     setInput("");
@@ -134,22 +124,12 @@ export default function PrivateChatWindow({
     lastMessageRef.current = text;
 
     try {
-      // 🔥 jetzt via API mit Redis-Schutz
-      const res = await fetch("/api/chatpanda/send-private", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from: myNickname,
-          to: user,
-          message: text,
-        }),
+      const { error } = await supabase.from("private_messages").insert({
+        from_nickname: myNickname,
+        to_nickname: user,
+        message: text,
       });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(data.error || "Fehler beim Senden der Nachricht.");
-        return;
-      }
+      if (error) console.error("Fehler beim Senden:", error.message);
     } catch (err) {
       console.error("Unerwarteter Fehler:", err);
     }
@@ -179,7 +159,7 @@ export default function PrivateChatWindow({
           </button>
         </div>
 
-        {/* Nachrichtenbereich */}
+        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
           {messages.length === 0 && <p className="text-gray-400">Noch keine Nachrichten</p>}
           {messages.map((m, i) => (
@@ -190,7 +170,7 @@ export default function PrivateChatWindow({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Eingabefeld */}
+        {/* Input */}
         <div className="border-t border-gray-700 p-2 flex items-center gap-2">
           <input
             type="text"
@@ -202,21 +182,22 @@ export default function PrivateChatWindow({
                 handleSend();
               }
             }}
-            placeholder={cooldownActive ? `Warte ${cooldownSeconds}s` : "Nachricht..."}
+            placeholder={
+              cooldownActive ? `Warte ${cooldownSeconds}s` : "Nachricht..."
+            }
             disabled={cooldownActive}
             className="flex-1 bg-gray-800 px-2 py-1 rounded text-sm focus:outline-none disabled:opacity-50"
           />
           <button
             onClick={handleSend}
-            className={`ml-2 px-3 py-1 rounded text-sm ${
+            disabled={cooldownActive}
+            className={`ml-2 px-3 py-1 rounded text-sm no-drag ${
               cooldownActive
                 ? "bg-gray-700 text-gray-400 cursor-not-allowed"
                 : "bg-blue-600 hover:bg-blue-700"
-            } no-drag`}
-            disabled={cooldownActive}
-            title={cooldownActive ? `Gesperrt noch ${cooldownSeconds}s` : "Senden"}
+            }`}
           >
-            ➤
+            {cooldownActive ? `⏳ ${cooldownSeconds}s` : "➤"}
           </button>
         </div>
       </div>
