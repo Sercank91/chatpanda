@@ -86,8 +86,8 @@ export default function ChatpandaPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Top bar */}
+    <div className="flex flex-col" style="height:91hv">
+      {/* Top bar h-screen */}
       <div className="border-b px-4 py-3 flex justify-between items-center sm:justify-end">
         <button
           className="sm:hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
