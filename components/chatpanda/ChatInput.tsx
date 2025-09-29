@@ -1,14 +1,38 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 export default function ChatInput({ room }: { room: string }) {
   const [message, setMessage] = useState("");
+  const [lastSent, setLastSent] = useState<number>(0);
+  const [history, setHistory] = useState<number[]>([]);
+  const lastMessageRef = useRef<string>("");
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
+    const now = Date.now();
+
     if (!message.trim()) return;
 
-    // Nickname & Gender aus localStorage holen
+    if (message.length > 500) {
+      alert("Nachricht zu lang (max. 500 Zeichen).");
+      return;
+    }
+
+    if (now - lastSent < 1000) {
+      return; // ⏳ statt alert → Button zeigt Disabled
+    }
+
+    const newHistory = [...history.filter((t) => now - t < 10000), now];
+    if (newHistory.length > 5) {
+      alert("Zu viele Nachrichten in kurzer Zeit.");
+      return;
+    }
+
+    if (lastMessageRef.current === message.trim()) {
+      alert("Du hast dieselbe Nachricht gerade eben gesendet.");
+      return;
+    }
+
     const nickname = localStorage.getItem("chatpanda_nickname");
     const gender = localStorage.getItem("chatpanda_gender");
 
@@ -18,13 +42,12 @@ export default function ChatInput({ room }: { room: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           room,
-          content: message,
+          content: message.trim(),
           nickname,
           gender,
         }),
       });
 
-      // Versuche JSON zu parsen, auch wenn Fehler kommt
       const data = await res.json().catch(() => ({}));
       console.log("API Response:", res.status, data);
 
@@ -33,20 +56,24 @@ export default function ChatInput({ room }: { room: string }) {
         return;
       }
 
-      setMessage(""); // Eingabefeld leeren
+      setMessage("");
+      setLastSent(now);
+      setHistory(newHistory);
+      lastMessageRef.current = message.trim();
     } catch (err) {
       console.error("Network error:", err);
       alert("Netzwerkfehler beim Senden – bitte Konsole (F12) prüfen.");
     }
   }
 
-  return (
-	<form
-	  onSubmit={sendMessage}
-	  className="flex items-center gap-2 border-t border-gray-800"
-	  style={{ padding: "10px" }}
-	>
+  const cooldownActive = Date.now() - lastSent < 1000;
 
+  return (
+    <form
+      onSubmit={sendMessage}
+      className="flex items-center gap-2 border-t border-gray-800"
+      style={{ padding: "10px" }}
+    >
       <input
         type="text"
         value={message}
@@ -56,9 +83,14 @@ export default function ChatInput({ room }: { room: string }) {
       />
       <button
         type="submit"
-        className="rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-white font-semibold"
+        disabled={cooldownActive}
+        className={`rounded-lg px-4 py-2 font-semibold transition-colors ${
+          cooldownActive
+            ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+            : "bg-indigo-600 hover:bg-indigo-500 text-white"
+        }`}
       >
-        Senden
+        {cooldownActive ? "Warte..." : "Senden"}
       </button>
     </form>
   );
