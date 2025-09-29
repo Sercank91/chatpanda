@@ -77,7 +77,7 @@ export default function ChatRoom({
           device: isMobile ? "mobile" : "desktop",
         });
 
-        // Nur beim ersten Join Systemnachricht anzeigen!
+        // Nur beim ersten Join Systemnachricht anzeigen.
         if (!sessionStorage.getItem("joined_once")) {
           sessionStorage.setItem("joined_once", "true");
           const welcomeMsg = {
