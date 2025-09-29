@@ -18,30 +18,35 @@ export async function POST(req: NextRequest) {
     const to = body.to.trim();
     const message = body.message.trim();
 
-    // Redis Keys
-    const keyCount = `privmsg:${from}:count`; // Nachrichten im Zeitfenster
-    const keyStrikes = `privmsg:${from}:strikes`; // Anzahl Verstöße
+    // ---- Flood-Schutz Keys ----
+    const keyCount = `privmsg:${from}:count`;
+    const keyStrikes = `privmsg:${from}:strikes`;
 
-    // Nachrichten zählen
+    const windowSec = 15; // Zählfenster 15s
+    const maxMsgs = 5; // max. 5 Nachrichten pro Fenster
+
+    // Nachrichtenzähler erhöhen
     const count = await redis.incr(keyCount);
     if (count === 1) {
-      await redis.expire(keyCount, 10); // 10 Sekunden Fenster
+      await redis.expire(keyCount, windowSec);
     }
 
-    if (count > 5) {
-      // Strike erhöhen
+    if (count > maxMsgs) {
+      // Strike-Zähler hoch
       const strikes = await redis.incr(keyStrikes);
-
-      // Ablaufzeit für Strikes (z.B. 1 Stunde)
       if (strikes === 1) {
-        await redis.expire(keyStrikes, 3600);
+        await redis.expire(keyStrikes, 3600); // 1 Stunde gültig
       }
 
-      // Strafzeiten: 1=15s, 2=30s, 3=60s, >=4=300s
+      // Strafzeit bestimmen
       let retry_after = 15;
       if (strikes === 2) retry_after = 30;
       else if (strikes === 3) retry_after = 60;
       else if (strikes >= 4) retry_after = 300;
+
+      // Sperre in Redis setzen
+      const banKey = `privmsg:${from}:ban`;
+      await redis.set(banKey, "1", "EX", retry_after);
 
       return NextResponse.json(
         {
@@ -52,7 +57,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // In DB speichern
+    // Prüfen ob aktive Sperre existiert
+    const banKey = `privmsg:${from}:ban`;
+    const ttl = await redis.ttl(banKey);
+    if (ttl > 0) {
+      return NextResponse.json(
+        {
+          error: "Du bist temporär gesperrt.",
+          retry_after: ttl,
+        },
+        { status: 429 }
+      );
+    }
+
+    // ---- In DB speichern ----
     const { error } = await supabaseAdmin.from("private_messages").insert({
       from_nickname: from,
       to_nickname: to,
