@@ -2,7 +2,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
-import { Smartphone } from "lucide-react";
+import { Smartphone } from "lucide-react"; // ✅ Icon importiert
 
 type OnlineUser = {
   nickname: string;
@@ -30,13 +30,15 @@ export default function ChatRoom({
   useEffect(() => {
     const nickname = localStorage.getItem("chatpanda_nickname") || "Gast";
     const gender = localStorage.getItem("chatpanda_gender") || "u";
+
+    // ✅ Mobile-Erkennung
     const isMobile = /Mobi|Android/i.test(navigator.userAgent);
 
     const channel = supabase.channel(`room:${room}`, {
       config: { presence: { key: nickname } },
     });
 
-    // Präsenz-Änderungen überwachen
+    // Präsenz-Änderungen
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
       const users: OnlineUser[] = [];
@@ -57,29 +59,27 @@ export default function ChatRoom({
       setOnlineUsers(users);
     });
 
-    // subscribe und Presence einmalig tracken
+    // Willkommensnachricht nur lokal
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         channel.track({
           nickname,
           gender,
           online_at: new Date().toISOString(),
-          device: isMobile ? "mobile" : "desktop",
+          device: isMobile ? "mobile" : "desktop", // ✅ Gerät mitgeben
         });
 
-        // ✅ Willkommensnachricht nur lokal einmal anzeigen
-        if (!sessionStorage.getItem("welcome_sent")) {
-          const welcomeMsg = {
-            id: `local-${Date.now()}`,
-            room,
-            username: "System",
-            content: `Herzlich Willkommen im Chatpanda, ${nickname}!`,
-            type: "system",
-            created_at: new Date().toISOString(),
-          };
-          window.dispatchEvent(new CustomEvent("local-message", { detail: welcomeMsg }));
-          sessionStorage.setItem("welcome_sent", "true");
-        }
+        const welcomeMsg = {
+          id: `local-${Date.now()}`,
+          room,
+          username: "System",
+          content: `Herzlich Willkommen im Chatpanda, ${nickname}!`,
+          type: "system",
+          created_at: new Date().toISOString(),
+        };
+
+        // Lokale Nachricht nur für diesen Client
+        window.dispatchEvent(new CustomEvent("local-message", { detail: welcomeMsg }));
       }
     });
 
@@ -111,9 +111,7 @@ export default function ChatRoom({
                   }
                 }}
               >
-                <span className={`${g.color} w-5 text-center inline-block`}>
-                  {g.icon}
-                </span>
+                <span className={`${g.color} w-5 text-center inline-block`}>{g.icon}</span>
                 <span className="font-semibold">{user.nickname}</span>
                 {user.device === "mobile" && (
                   <Smartphone className="w-4 h-4 text-green-400 ml-1" />
