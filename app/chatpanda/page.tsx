@@ -100,15 +100,15 @@ export default function ChatpandaPage() {
 
       {/* Main content */}
       <div className="flex-1 flex min-h-0">
-        {/* Messages */}
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Chatbereich (nimmt Resthöhe, scrollbar) */}
-          <div className="flex-1 overflow-y-auto p-4">
+        {/* Chat + Input */}
+        <div className="flex-1 flex flex-col relative">
+          {/* Scrollbarer Chatfeed */}
+          <div className="flex-1 overflow-y-auto p-4 pb-20">
             <ChatFeed />
           </div>
 
-          {/* Chat input (immer unten sichtbar, kein extra Scroll nötig) */}
-          <div className="border-t bg-gray-900 shadow-lg p-2">
+          {/* Fixiertes Input-Feld */}
+          <div className="absolute bottom-0 left-0 right-0 border-t bg-gray-900 shadow-lg p-2">
             <ChatInput room="global" />
           </div>
         </div>
