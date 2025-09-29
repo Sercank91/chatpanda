@@ -1,6 +1,6 @@
 // components/chatpanda/PrivateChatWindow.tsx
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Rnd } from "react-rnd";
 import { supabase } from "@/lib/supabase/browser";
 
@@ -23,6 +23,7 @@ export default function PrivateChatWindow({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [myNickname, setMyNickname] = useState("Ich");
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // Nickname laden
   useEffect(() => {
@@ -32,12 +33,12 @@ export default function PrivateChatWindow({
     }
   }, []);
 
-  // ✅ Initial nur einmal Nachrichten setzen
+  // Initial nur einmal Nachrichten setzen
   useEffect(() => {
     if (initialMessages.length > 0) {
       setMessages(initialMessages);
     }
-  }, []); // nur einmal beim Mount
+  }, []);
 
   // Realtime Subscription
   useEffect(() => {
@@ -70,11 +71,18 @@ export default function PrivateChatWindow({
     };
   }, [myNickname, user]);
 
+  // Automatisches Scrollen nach unten
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
   async function handleSend() {
     if (!input.trim() || !myNickname || !user) return;
 
     const text = input.trim();
-    setInput(""); // Eingabe sofort leeren
+    setInput("");
 
     try {
       const { error } = await supabase.from("private_messages").insert({
@@ -109,13 +117,12 @@ export default function PrivateChatWindow({
           {messages.map((m, i) => (
             <div
               key={i}
-              className={`p-2 rounded ${
-                m.from === myNickname ? "bg-blue-700 text-right" : "bg-gray-800 text-left"
-              }`}
+              className="p-2 rounded bg-gray-800 text-left"
             >
               <span className="font-semibold">{m.from}:</span> {m.text}
             </div>
           ))}
+          <div ref={messagesEndRef} /> {/* Scroll-Anker */}
         </div>
 
         {/* Eingabefeld */}
