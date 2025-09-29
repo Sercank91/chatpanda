@@ -72,7 +72,7 @@ export default function ChatpandaPage() {
   return (
     <div className="flex flex-col h-screen pt-14">
       {/* Begrüßung direkt unter dem Header */}
-      <div className="border-b bg-gray-900 px-4 py-2 text-sm text-gray-300">
+      <div className="border-b bg-gray-900 px-4 py-2 text-sm text-gray-300 text-right">
         Hallo, <span className="font-semibold text-purple-400">{nickname}</span>
       </div>
 
