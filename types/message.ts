@@ -5,5 +5,6 @@ export type Message = {
   user_id: string;
   username: string;
   content: string;
+  gender: string;
   created_at: string;
 };
