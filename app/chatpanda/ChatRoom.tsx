@@ -106,7 +106,7 @@ export default function ChatRoom({
                 }}
               >
                 {/* Links: Geschlecht */}
-                <span className={g.color}>{g.icon}</span>
+                <span className={`${g.color} w-5 text-center inline-block`}>{g.icon}</span>
                 {/* Rechts: Nickname */}
                 <span className="font-semibold">{user.nickname}</span>
               </li>
