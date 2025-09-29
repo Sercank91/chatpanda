@@ -44,20 +44,29 @@ export default function ChatpandaPage() {
       .channel(`inbox:${nickname}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "private_messages", filter: `to_nickname=eq.${nickname}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "private_messages",
+          filter: `to_nickname=eq.${nickname}`,
+        },
         (payload) => {
           const m = payload.new as { from_nickname: string; message: string };
           if (m?.from_nickname) {
             setPrivateChats((prev) => {
               const current = prev[m.from_nickname] || [];
-              return { ...prev, [m.from_nickname]: [...current, { from: m.from_nickname, text: m.message }] };
+              return {
+                ...prev,
+                [m.from_nickname]: [...current, { from: m.from_nickname, text: m.message }],
+              };
             });
           }
         }
       )
       .subscribe();
+
     return () => {
-      supabase.removeChannel(channel).catch(() => {});
+      supabase.removeChannel(channel);
     };
   }, [nickname]);
 
@@ -71,29 +80,31 @@ export default function ChatpandaPage() {
 
   return (
     <div className="flex flex-col h-screen pt-14">
-      {/* Begrüßung + Mobile Button */}
+      {/* Begrüßung direkt unter dem Header */}
       <div className="border-b bg-gray-900 px-4 py-2 text-sm text-gray-300 flex justify-between items-center">
-        {/* 👥 Button nur auf Mobile */}
+        {/* 👥 Button links für Mobile */}
         <button
+          className="sm:hidden flex items-center gap-1 text-gray-300 hover:text-purple-400 transition-colors"
           onClick={() => setShowUsers(!showUsers)}
-          className="sm:hidden text-gray-200 hover:text-white transition-colors text-lg"
         >
-          👥
+          👥 <span className="text-xs">Users</span>
         </button>
 
-        {/* Hallo, nickname rechts */}
-        <div className="ml-auto">
+        {/* Nickname rechts */}
+        <span>
           Hallo, <span className="font-semibold text-purple-400">{nickname}</span>
-        </div>
+        </span>
       </div>
 
       {/* Main content */}
       <div className="flex-1 flex min-h-0">
         {/* Chat + Input */}
         <div className="flex-1 flex flex-col min-h-0">
+          {/* Scrollbarer Chatfeed */}
           <div className="flex-1 overflow-y-auto p-4">
             <ChatFeed />
           </div>
+          {/* Fixiertes Input-Feld unten */}
           <div className="border-t bg-gray-900 shadow-lg p-2">
             <ChatInput room="global" />
           </div>
@@ -114,28 +125,30 @@ export default function ChatpandaPage() {
       </div>
 
       {/* Mobile: Users overlay */}
-      {showUsers && (
-        <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col sm:hidden">
-          <div className="bg-gray-800 border-b px-4 py-3 flex justify-between items-center shadow-sm">
-            <h2 className="font-semibold text-white">Online Users</h2>
-            <button
-              onClick={() => setShowUsers(false)}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
-              Back to Chat
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            <ChatRoom
-              room="global"
-              onUserClick={(user, pos) => {
-                setContextUser(user);
-                setContextPos(pos);
-              }}
-            />
-          </div>
+      <div
+        className={`fixed inset-0 bg-gray-900 z-50 flex flex-col sm:hidden transform transition-transform duration-300 ${
+          showUsers ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="bg-gray-800 border-b px-4 py-3 flex justify-between items-center shadow-sm">
+          <h2 className="font-semibold text-white">Online Users</h2>
+          <button
+            onClick={() => setShowUsers(false)}
+            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            Back to Chat
+          </button>
         </div>
-      )}
+        <div className="flex-1 overflow-y-auto">
+          <ChatRoom
+            room="global"
+            onUserClick={(user, pos) => {
+              setContextUser(user);
+              setContextPos(pos);
+            }}
+          />
+        </div>
+      </div>
 
       {/* Kontextmenü */}
       {contextUser && contextPos && (
@@ -149,20 +162,26 @@ export default function ChatpandaPage() {
           </div>
           <ul className="divide-y divide-gray-700">
             <li className="px-3 py-2 hover:bg-gray-700 cursor-pointer">📊 Benutzer-Statistik</li>
-            <li className="px-3 py-2 hover:bg-gray-700 cursor-pointer">🙋 Benutzer ansprechen</li>
-            <li
-              className="px-3 py-2 hover:bg-gray-700 cursor-pointer"
-              onClick={() => {
-                setPrivateChats((prev) => {
-                  if (!prev[contextUser]) return { ...prev, [contextUser]: [] };
-                  return prev;
-                });
-                setContextUser(null);
-              }}
-            >
-              💬 Privatchat im Fenster
-            </li>
-            <li className="px-3 py-2 hover:bg-gray-700 cursor-pointer text-red-400">🚫 Nachrichten blockieren</li>
+            {contextUser !== nickname && (
+              <>
+                <li className="px-3 py-2 hover:bg-gray-700 cursor-pointer">🙋 Benutzer ansprechen</li>
+                <li
+                  className="px-3 py-2 hover:bg-gray-700 cursor-pointer"
+                  onClick={() => {
+                    setPrivateChats((prev) => {
+                      if (!prev[contextUser]) return { ...prev, [contextUser]: [] };
+                      return prev;
+                    });
+                    setContextUser(null);
+                  }}
+                >
+                  💬 Privatchat im Fenster
+                </li>
+                <li className="px-3 py-2 hover:bg-gray-700 cursor-pointer text-red-400">
+                  🚫 Nachrichten blockieren
+                </li>
+              </>
+            )}
           </ul>
         </div>
       )}
