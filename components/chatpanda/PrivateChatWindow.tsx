@@ -33,12 +33,12 @@ export default function PrivateChatWindow({
     }
   }, []);
 
-  // Initial nur einmal Nachrichten setzen
+  // Initial Nachrichten setzen (abhängig von initialMessages)
   useEffect(() => {
     if (initialMessages.length > 0) {
       setMessages(initialMessages);
     }
-  }, []);
+  }, [initialMessages]); // ✅ Dependency hinzugefügt
 
   // Realtime Subscription
   useEffect(() => {
