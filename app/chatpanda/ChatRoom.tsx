@@ -3,14 +3,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
-// 🔹 Typ für Online-User
 type OnlineUser = {
   nickname: string;
   gender: string;
   online_at: string;
 };
 
-// 🔹 Mapping für Geschlecht
 const genderMap: Record<string, { icon: string; color: string }> = {
   m: { icon: "♂️", color: "text-blue-400" },
   w: { icon: "♀️", color: "text-pink-400" },
@@ -18,7 +16,6 @@ const genderMap: Record<string, { icon: string; color: string }> = {
   u: { icon: "?", color: "text-gray-400" },
 };
 
-// 🔹 Props erweitert um onUserClick
 export default function ChatRoom({
   room,
   onUserClick,
@@ -36,7 +33,7 @@ export default function ChatRoom({
       config: { presence: { key: nickname } },
     });
 
-    // 🔹 Sync nur für die Online-Liste
+    // Präsenz-Änderungen
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
       const users: OnlineUser[] = [];
@@ -56,7 +53,7 @@ export default function ChatRoom({
       setOnlineUsers(users);
     });
 
-    // 🔹 Eigene Willkommensnachricht nur einmal
+    // Willkommensnachricht nur lokal
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         channel.track({
@@ -65,12 +62,17 @@ export default function ChatRoom({
           online_at: new Date().toISOString(),
         });
 
-        await supabase.from("messages").insert({
+        const welcomeMsg = {
+          id: `local-${Date.now()}`,
           room,
           username: "System",
           content: `Herzlich Willkommen im Chatpanda, ${nickname}!`,
           type: "system",
-        });
+          created_at: new Date().toISOString(),
+        };
+
+        // Lokale Nachricht nur für diesen Client
+        window.dispatchEvent(new CustomEvent("local-message", { detail: welcomeMsg }));
       }
     });
 
@@ -102,9 +104,7 @@ export default function ChatRoom({
                   }
                 }}
               >
-                <span className={`${g.color} w-5 text-center inline-block`}>
-                  {g.icon}
-                </span>
+                <span className={`${g.color} w-5 text-center inline-block`}>{g.icon}</span>
                 <span className="font-semibold">{user.nickname}</span>
               </li>
             );

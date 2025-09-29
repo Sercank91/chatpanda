@@ -11,6 +11,7 @@ export default function ChatFeed({ initial = [] }: Props) {
   const [messages, setMessages] = useState<Message[]>(initial);
 
   useEffect(() => {
+    // DB-Events (für alle)
     const channel = supabase
       .channel("public:messages")
       .on(
@@ -23,16 +24,16 @@ export default function ChatFeed({ initial = [] }: Props) {
       )
       .subscribe();
 
-    // 🔹 Local Listener für Willkommensnachrichten (typisiert)
-    function handleLocalMessage(e: CustomEvent<Message>) {
-      const msg = e.detail;
-      setMessages((prev) => [...prev, msg]);
-    }
-    window.addEventListener("chatpanda-local-message", handleLocalMessage as EventListener);
+    // Lokale Events (nur Willkommensnachricht für eigenen Client)
+    const handler = (e: Event) => {
+      const custom = e as CustomEvent<Message>;
+      setMessages((prev) => [...prev, custom.detail]);
+    };
+    window.addEventListener("local-message", handler);
 
     return () => {
       supabase.removeChannel(channel);
-      window.removeEventListener("chatpanda-local-message", handleLocalMessage as EventListener);
+      window.removeEventListener("local-message", handler);
     };
   }, []);
 
@@ -47,22 +48,18 @@ export default function ChatFeed({ initial = [] }: Props) {
   return (
     <div className="space-y-3">
       {messages.map((m) => {
-        // 🔹 System-Nachricht
         if (m.type === "system" || m.username === "System") {
           return (
             <div key={m.id} className="rounded-md bg-gray-900/70 p-3">
               <div className="text-xs opacity-70">
                 {new Date(m.created_at).toLocaleTimeString()} •{" "}
-                <span className="font-semibold text-yellow-400">
-                  🛡️ {m.username}
-                </span>
+                <span className="font-semibold text-yellow-400">🛡️ {m.username}</span>
               </div>
               <div className="text-yellow-300 italic">{m.content}</div>
             </div>
           );
         }
 
-        // 🔹 Normale Nachricht
         return (
           <div key={m.id} className="rounded-md bg-gray-900/70 p-3">
             <div className="text-xs opacity-70">
