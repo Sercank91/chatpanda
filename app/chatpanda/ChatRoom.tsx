@@ -37,7 +37,7 @@ export default function ChatRoom({
       config: { presence: { key: nickname } },
     });
 
-    // Präsenz-Änderungen
+    // Präsenz aktualisieren
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
       const users: OnlineUser[] = [];
@@ -55,30 +55,25 @@ export default function ChatRoom({
         });
       });
 
-      setOnlineUsers(users);
+      // 🔑 doppelte User rausfiltern
+      const unique = users.filter(
+        (u, idx, arr) => arr.findIndex((x) => x.nickname === u.nickname) === idx
+      );
+
+      setOnlineUsers(unique);
     });
 
-    // subscribe und track
+    // subscribe + track
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
-        const me: OnlineUser = {
+        channel.track({
           nickname,
           gender,
           online_at: new Date().toISOString(),
           device: isMobile ? "mobile" : "desktop",
-        };
-
-        channel.track(me);
-
-        // 👤 Sofort sichtbar machen (nicht erst nach sync warten)
-        setOnlineUsers((prev) => {
-          if (!prev.find((u) => u.nickname === nickname)) {
-            return [...prev, me];
-          }
-          return prev;
         });
 
-        // ✅ Willkommensnachricht NUR beim ersten Mount dieser Komponente
+        // Systemnachricht nur 1× pro Sitzung
         if (!welcomeSent) {
           const welcomeMsg = {
             id: `local-${Date.now()}`,
@@ -99,6 +94,8 @@ export default function ChatRoom({
     };
   }, [room, welcomeSent]);
 
+  const currentUser = localStorage.getItem("chatpanda_nickname") || "Gast";
+
   return (
     <div className="bg-gray-900 p-4 rounded-lg relative">
       <h2 className="text-lg font-bold mb-2">👥 Online im Raum: {room}</h2>
@@ -114,6 +111,16 @@ export default function ChatRoom({
                 className="flex items-center gap-2 text-gray-300 cursor-pointer hover:text-blue-400"
                 onClick={(e) => {
                   e.preventDefault();
+                  // 🔑 Eigener User → nur Statistik
+                  if (user.nickname === currentUser) {
+                    if (onUserClick) {
+                      onUserClick(user.nickname, {
+                        x: e.clientX,
+                        y: e.clientY,
+                      });
+                    }
+                    return;
+                  }
                   if (onUserClick) {
                     onUserClick(user.nickname, {
                       x: e.clientX,
