@@ -36,12 +36,26 @@ export default function ChatRoom({
       config: { presence: { key: nickname } },
     });
 
-    channel.on("presence", { event: "join" }, ({ key, newPresences }) => {
-      console.log("JOIN:", key, newPresences);
+    // 👥 JOIN Event -> Systemnachricht
+    channel.on("presence", { event: "join" }, async ({ key }) => {
+      console.log("JOIN:", key);
+      await supabase.from("messages").insert({
+        room: room,
+        username: "System",
+        content: `${key} ist dem Raum beigetreten.`,
+        type: "system",
+      });
     });
 
-    channel.on("presence", { event: "leave" }, ({ key, leftPresences }) => {
-      console.log("LEAVE:", key, leftPresences);
+    // 👋 LEAVE Event -> Systemnachricht
+    channel.on("presence", { event: "leave" }, async ({ key }) => {
+      console.log("LEAVE:", key);
+      await supabase.from("messages").insert({
+        room: room,
+        username: "System",
+        content: `${key} hat den Raum verlassen.`,
+        type: "system",
+      });
     });
 
     channel.on("presence", { event: "sync" }, () => {
@@ -106,7 +120,9 @@ export default function ChatRoom({
                 }}
               >
                 {/* Links: Geschlecht */}
-                <span className={`${g.color} w-5 text-center inline-block`}>{g.icon}</span>
+                <span className={`${g.color} w-5 text-center inline-block`}>
+                  {g.icon}
+                </span>
                 {/* Rechts: Nickname */}
                 <span className="font-semibold">{user.nickname}</span>
               </li>
