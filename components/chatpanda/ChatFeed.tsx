@@ -7,19 +7,11 @@ import type { Message } from "@/types/message";
 
 type Props = { initial?: Message[] };
 
-// 🔹 Mapping für Geschlecht
-const genderMap: Record<string, { icon: string; color: string }> = {
-  m: { icon: "♂️", color: "text-blue-400" },
-  w: { icon: "♀️", color: "text-pink-400" },
-  d: { icon: "⚧", color: "text-purple-400" },
-  u: { icon: "?", color: "text-gray-400" },
-};
-
 export default function ChatFeed({ initial = [] }: Props) {
   const [messages, setMessages] = useState<Message[]>(initial);
 
   useEffect(() => {
-    const channel = supabase
+    const channel = supabase // ✅ hier statt supabaseBrowser
       .channel("public:messages")
       .on(
         "postgres_changes",
@@ -32,7 +24,7 @@ export default function ChatFeed({ initial = [] }: Props) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel); // ✅ angepasst
     };
   }, []);
 
@@ -46,29 +38,27 @@ export default function ChatFeed({ initial = [] }: Props) {
 
   return (
     <div className="space-y-3">
-      {messages.map((m) => {
-        const g = genderMap[m.gender ?? "u"];
-        return (
-          <div key={m.id} className="flex justify-between items-start">
-            {/* Links: Symbol + Nickname + Nachricht */}
-            <div className="flex items-start gap-2">
+      {messages.map((m) => (
+	  const g = genderMap[m.gender ?? "u"];
+      return (
+        <div key={m.id} className="rounded-md bg-gray-900/70 p-3 flex justify-between items-start">
+          <div className="text-xs opacity-70">
+            {new Date(m.created_at).toLocaleTimeString()} •{" "}
+			<div className="flex items-start gap-2">
               <span className={g.color}>{g.icon}</span>
               <div>
-                <span className="font-bold">{m.username}</span>{" "}
-                <span className="text-gray-100">{m.content}</span>
-              </div>
-            </div>
-
-            {/* Rechts: Uhrzeit */}
+            <span className="font-bold">{m.username}</span>
+          </div>
+          <div className="text-gray-100">{m.content}</div>
+        </div>
+		{/* Rechts: Uhrzeit */}
             <span className="text-xs text-gray-500 whitespace-nowrap ml-3">
               {new Date(m.created_at).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
             </span>
-          </div>
-        );
-      })}
+      ))}
     </div>
   );
 }
