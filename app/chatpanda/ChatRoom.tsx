@@ -2,7 +2,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
-import { Smartphone } from "lucide-react";
+import { Smartphone } from "lucide-react"; // ✅ Icon importiert
 
 type OnlineUser = {
   nickname: string;
@@ -30,6 +30,8 @@ export default function ChatRoom({
   useEffect(() => {
     const nickname = localStorage.getItem("chatpanda_nickname") || "Gast";
     const gender = localStorage.getItem("chatpanda_gender") || "u";
+
+    // ✅ Mobile-Erkennung
     const isMobile = /Mobi|Android/i.test(navigator.userAgent);
 
     const channel = supabase.channel(`room:${room}`, {
@@ -57,29 +59,27 @@ export default function ChatRoom({
       setOnlineUsers(users);
     });
 
-    // Nur beim ersten Subscribe joinen & Willkommensnachricht senden
+    // Willkommensnachricht nur lokal
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
-        await channel.track({
+        channel.track({
           nickname,
           gender,
           online_at: new Date().toISOString(),
-          device: isMobile ? "mobile" : "desktop",
+          device: isMobile ? "mobile" : "desktop", // ✅ Gerät mitgeben
         });
 
-        // Nur für eigenen Client anzeigen
-        if (!window.sessionStorage.getItem("welcomeShown")) {
-          const welcomeMsg = {
-            id: `local-${Date.now()}`,
-            room,
-            username: "System",
-            content: `Herzlich Willkommen im Chatpanda, ${nickname}!`,
-            type: "system",
-            created_at: new Date().toISOString(),
-          };
-          window.dispatchEvent(new CustomEvent("local-message", { detail: welcomeMsg }));
-          window.sessionStorage.setItem("welcomeShown", "true");
-        }
+        const welcomeMsg = {
+          id: `local-${Date.now()}`,
+          room,
+          username: "System",
+          content: `Herzlich Willkommen im Chatpanda, ${nickname}!`,
+          type: "system",
+          created_at: new Date().toISOString(),
+        };
+
+        // Lokale Nachricht nur für diesen Client
+        window.dispatchEvent(new CustomEvent("local-message", { detail: welcomeMsg }));
       }
     });
 
@@ -87,8 +87,6 @@ export default function ChatRoom({
       channel.unsubscribe();
     };
   }, [room]);
-
-  const myNickname = localStorage.getItem("chatpanda_nickname");
 
   return (
     <div className="bg-gray-900 p-4 rounded-lg relative">
@@ -106,19 +104,17 @@ export default function ChatRoom({
                 onClick={(e) => {
                   e.preventDefault();
                   if (onUserClick) {
-                    // Nur Statistik für sich selbst
-                    if (user.nickname === myNickname) {
-                      onUserClick("statistic-only", { x: e.clientX, y: e.clientY });
-                    } else {
-                      onUserClick(user.nickname, { x: e.clientX, y: e.clientY });
-                    }
+                    onUserClick(user.nickname, {
+                      x: e.clientX,
+                      y: e.clientY,
+                    });
                   }
                 }}
               >
                 <span className={`${g.color} w-5 text-center inline-block`}>{g.icon}</span>
                 <span className="font-semibold">{user.nickname}</span>
                 {user.device === "mobile" && (
-                  <Smartphone className="w-4 h-4 text-gray-400 ml-1" />
+                  <Smartphone className="w-4 h-4 text-green-400 ml-1" />
                 )}
               </li>
             );
