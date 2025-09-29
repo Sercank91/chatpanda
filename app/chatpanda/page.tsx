@@ -19,10 +19,17 @@ export default function ChatpandaPage() {
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
   const [privateChats, setPrivateChats] = useState<Record<string, Message[]>>({});
+  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
 
   useEffect(() => {
     setNickname(localStorage.getItem("chatpanda_nickname"));
     setGender(localStorage.getItem("chatpanda_gender"));
+
+    // Blockliste laden
+    const stored = localStorage.getItem("chatpanda_blocked");
+    if (stored) {
+      setBlockedUsers(JSON.parse(stored));
+    }
   }, []);
 
   // Klick außerhalb Kontextmenü
@@ -53,6 +60,9 @@ export default function ChatpandaPage() {
         (payload) => {
           const m = payload.new as { from_nickname: string; message: string };
           if (m?.from_nickname) {
+            // Wenn blockiert → ignorieren
+            if (blockedUsers.includes(m.from_nickname)) return;
+
             setPrivateChats((prev) => {
               const current = prev[m.from_nickname] || [];
               return {
@@ -68,7 +78,20 @@ export default function ChatpandaPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [nickname]);
+  }, [nickname, blockedUsers]);
+
+  // Blockieren/Entblocken
+  const toggleBlockUser = (user: string) => {
+    let updated: string[];
+    if (blockedUsers.includes(user)) {
+      updated = blockedUsers.filter((u) => u !== user);
+    } else {
+      updated = [...blockedUsers, user];
+    }
+    setBlockedUsers(updated);
+    localStorage.setItem("chatpanda_blocked", JSON.stringify(updated));
+    setContextUser(null);
+  };
 
   if (!nickname || !gender) {
     return (
@@ -102,7 +125,7 @@ export default function ChatpandaPage() {
         <div className="flex-1 flex flex-col min-h-0">
           {/* Scrollbarer Chatfeed */}
           <div className="flex-1 overflow-y-auto p-4">
-            <ChatFeed />
+            <ChatFeed blockedUsers={blockedUsers} />
           </div>
           {/* Fixiertes Input-Feld unten */}
           <div className="border-t bg-gray-900 shadow-lg p-2">
@@ -177,8 +200,13 @@ export default function ChatpandaPage() {
                 >
                   💬 Privatchat im Fenster
                 </li>
-                <li className="px-3 py-2 hover:bg-gray-700 cursor-pointer text-red-400">
-                  🚫 Nachrichten blockieren
+                <li
+                  className="px-3 py-2 hover:bg-gray-700 cursor-pointer text-red-400"
+                  onClick={() => toggleBlockUser(contextUser)}
+                >
+                  {blockedUsers.includes(contextUser)
+                    ? "✅ Blockierung aufheben"
+                    : "🚫 Nachrichten blockieren"}
                 </li>
               </>
             )}
