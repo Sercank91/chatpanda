@@ -26,6 +26,7 @@ export default function ChatRoom({
   onUserClick?: (user: string, pos: { x: number; y: number }) => void;
 }) {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [welcomeSent, setWelcomeSent] = useState(false);
 
   useEffect(() => {
     const nickname = localStorage.getItem("chatpanda_nickname") || "Gast";
@@ -36,7 +37,7 @@ export default function ChatRoom({
       config: { presence: { key: nickname } },
     });
 
-    // Präsenz-Änderungen überwachen
+    // Präsenz-Änderungen
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
       const users: OnlineUser[] = [];
@@ -57,18 +58,28 @@ export default function ChatRoom({
       setOnlineUsers(users);
     });
 
-    // subscribe und Presence einmalig tracken
+    // subscribe und track
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
-        channel.track({
+        const me: OnlineUser = {
           nickname,
           gender,
           online_at: new Date().toISOString(),
           device: isMobile ? "mobile" : "desktop",
+        };
+
+        channel.track(me);
+
+        // 👤 Sofort sichtbar machen (nicht erst nach sync warten)
+        setOnlineUsers((prev) => {
+          if (!prev.find((u) => u.nickname === nickname)) {
+            return [...prev, me];
+          }
+          return prev;
         });
 
-        // ✅ Willkommensnachricht nur lokal einmal anzeigen
-        if (!sessionStorage.getItem("welcome_sent")) {
+        // ✅ Willkommensnachricht NUR beim ersten Mount dieser Komponente
+        if (!welcomeSent) {
           const welcomeMsg = {
             id: `local-${Date.now()}`,
             room,
@@ -78,7 +89,7 @@ export default function ChatRoom({
             created_at: new Date().toISOString(),
           };
           window.dispatchEvent(new CustomEvent("local-message", { detail: welcomeMsg }));
-          sessionStorage.setItem("welcome_sent", "true");
+          setWelcomeSent(true);
         }
       }
     });
@@ -86,7 +97,7 @@ export default function ChatRoom({
     return () => {
       channel.unsubscribe();
     };
-  }, [room]);
+  }, [room, welcomeSent]);
 
   return (
     <div className="bg-gray-900 p-4 rounded-lg relative">
