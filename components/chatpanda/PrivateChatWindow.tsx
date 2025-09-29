@@ -25,15 +25,15 @@ export default function PrivateChatWindow({
   const [myNickname, setMyNickname] = useState("Ich");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Flood-Protection states
+  // Flood-Protection States
   const [lastSent, setLastSent] = useState<number>(0);
   const [history, setHistory] = useState<number[]>([]);
   const [cooldownUntil, setCooldownUntil] = useState<number>(0);
   const lastMessageRef = useRef<string>("");
 
-  // clock for countdown
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
 
+  // Nickname laden
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("chatpanda_nickname");
@@ -41,6 +41,7 @@ export default function PrivateChatWindow({
     }
   }, []);
 
+  // Initial nur einmal Nachrichten setzen
   useEffect(() => {
     if (initialMessages.length > 0) {
       setMessages(initialMessages);
@@ -48,6 +49,7 @@ export default function PrivateChatWindow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Realtime Subscription
   useEffect(() => {
     if (!myNickname || !user) return;
 
@@ -78,13 +80,14 @@ export default function PrivateChatWindow({
     };
   }, [myNickname, user]);
 
+  // Automatisches Scrollen
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
-  // countdown re-render
+  // Countdown re-rendern
   useEffect(() => {
     let id: number | undefined;
     if (cooldownUntil > Date.now()) {
@@ -97,39 +100,58 @@ export default function PrivateChatWindow({
 
   async function handleSend() {
     const now = Date.now();
-
     if (!input.trim() || !myNickname || !user) return;
 
-    // block if cooldown
+    // Maximale Länge
+    if (input.length > 800) {
+      alert("Nachricht zu lang (max. 800 Zeichen).");
+      return;
+    }
+
+    // Lokaler Block aktiv
     if (now < cooldownUntil) return;
 
-    // limit: min 2s zwischen Nachrichten
-    if (now - lastSent < 2000) return;
+    // Minimum Zeit
+    if (now - lastSent < 1000) return;
 
-    // limit: max 5 Nachrichten pro 15s
-    const newHistory = [...history.filter((t) => now - t < 15000), now];
-    if (newHistory.length > 5) {
-      setCooldownUntil(now + 30000); // 30s sperre
+    // Rate Limit (lokal, Sicherheitsnetz)
+    const newHistory = [...history.filter((t) => now - t < 10000), now];
+    if (newHistory.length > 8) {
+      setCooldownUntil(now + 30000);
       setHistory(newHistory);
       return;
     }
 
-    // keine duplicate messages
+    // Duplikat
     if (lastMessageRef.current === input.trim()) return;
 
     const text = input.trim();
     setInput("");
-    setLastSent(now);
-    setHistory(newHistory);
     lastMessageRef.current = text;
 
     try {
-      const { error } = await supabase.from("private_messages").insert({
-        from_nickname: myNickname,
-        to_nickname: user,
-        message: text,
+      const res = await fetch("/api/chatpanda/send-private", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: myNickname,
+          to: user,
+          message: text,
+        }),
       });
-      if (error) console.error("Fehler beim Senden:", error.message);
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        if (res.status === 429 && data.retry_after) {
+          // ⬅️ Redis Block übernehmen
+          setCooldownUntil(Date.now() + data.retry_after * 1000);
+        }
+        return;
+      }
+
+      setLastSent(now);
+      setHistory(newHistory);
     } catch (err) {
       console.error("Unerwarteter Fehler:", err);
     }
@@ -159,7 +181,7 @@ export default function PrivateChatWindow({
           </button>
         </div>
 
-        {/* Messages */}
+        {/* Nachrichtenbereich */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
           {messages.length === 0 && <p className="text-gray-400">Noch keine Nachrichten</p>}
           {messages.map((m, i) => (
@@ -170,7 +192,7 @@ export default function PrivateChatWindow({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
+        {/* Eingabefeld */}
         <div className="border-t border-gray-700 p-2 flex items-center gap-2">
           <input
             type="text"
@@ -182,20 +204,18 @@ export default function PrivateChatWindow({
                 handleSend();
               }
             }}
-            placeholder={
-              cooldownActive ? `Warte ${cooldownSeconds}s` : "Nachricht..."
-            }
+            placeholder={cooldownActive ? `Warte ${cooldownSeconds}s` : "Nachricht..."}
             disabled={cooldownActive}
             className="flex-1 bg-gray-800 px-2 py-1 rounded text-sm focus:outline-none disabled:opacity-50"
           />
           <button
             onClick={handleSend}
-            disabled={cooldownActive}
-            className={`ml-2 px-3 py-1 rounded text-sm no-drag ${
+            className={`ml-2 px-3 py-1 rounded text-sm ${
               cooldownActive
                 ? "bg-gray-700 text-gray-400 cursor-not-allowed"
                 : "bg-blue-600 hover:bg-blue-700"
-            }`}
+            } no-drag`}
+            disabled={cooldownActive}
           >
             {cooldownActive ? `⏳ ${cooldownSeconds}s` : "➤"}
           </button>
