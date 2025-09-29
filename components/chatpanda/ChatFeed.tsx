@@ -1,7 +1,7 @@
 // components/chatpanda/ChatFeed.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 import type { Message } from "@/types/message";
 
@@ -9,6 +9,7 @@ type Props = { initial?: Message[] };
 
 export default function ChatFeed({ initial = [] }: Props) {
   const [messages, setMessages] = useState<Message[]>(initial);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     // DB-Events (für alle)
@@ -36,6 +37,18 @@ export default function ChatFeed({ initial = [] }: Props) {
       window.removeEventListener("local-message", handler);
     };
   }, []);
+
+  // ⬇️ Immer ans Ende scrollen
+  useEffect(() => {
+    if (!bottomRef.current) return;
+
+    // Wenn es die erste Nachricht ist -> sofortiger Jump
+    if (messages.length <= 1) {
+      bottomRef.current.scrollIntoView({ behavior: "auto" });
+    } else {
+      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   if (!messages.length) {
     return (
@@ -70,6 +83,8 @@ export default function ChatFeed({ initial = [] }: Props) {
           </div>
         );
       })}
+      {/* Dummy-Element zum Scrollen */}
+      <div ref={bottomRef} />
     </div>
   );
 }
