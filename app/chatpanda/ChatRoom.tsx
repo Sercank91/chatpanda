@@ -26,18 +26,18 @@ export default function ChatRoom({
   onUserClick?: (user: string, pos: { x: number; y: number }) => void;
 }) {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
-  const [welcomeSent, setWelcomeSent] = useState(false); // 👈 verhindert Spam
 
   useEffect(() => {
     const nickname = localStorage.getItem("chatpanda_nickname") || "Gast";
     const gender = localStorage.getItem("chatpanda_gender") || "u";
     const isMobile = /Mobi|Android/i.test(navigator.userAgent);
 
+    // Einmalig beim Joinen Kanal erstellen
     const channel = supabase.channel(`room:${room}`, {
       config: { presence: { key: nickname } },
     });
 
-    // Präsenz-Änderungen
+    // Präsenz-State überwachen
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
       const users: OnlineUser[] = [];
@@ -55,7 +55,7 @@ export default function ChatRoom({
         });
       });
 
-      // ✅ doppelte User entfernen
+      // doppelte User vermeiden
       const unique = users.filter(
         (u, i, arr) => arr.findIndex((x) => x.nickname === u.nickname) === i
       );
@@ -63,35 +63,33 @@ export default function ChatRoom({
       setOnlineUsers(unique);
     });
 
-    // Track + Systemnachricht nur 1×
+    // Track NUR EINMAL bei SUBSCRIBED
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
-        channel.track({
+        await channel.track({
           nickname,
           gender,
           online_at: new Date().toISOString(),
           device: isMobile ? "mobile" : "desktop",
         });
 
-        if (!welcomeSent) {
-          const welcomeMsg = {
-            id: `local-${Date.now()}`,
-            room,
-            username: "System",
-            content: `Herzlich Willkommen im Chatpanda, ${nickname}!`,
-            type: "system",
-            created_at: new Date().toISOString(),
-          };
-          window.dispatchEvent(new CustomEvent("local-message", { detail: welcomeMsg }));
-          setWelcomeSent(true);
-        }
+        // Welcome-Nachricht nur lokal
+        const welcomeMsg = {
+          id: `local-${Date.now()}`,
+          room,
+          username: "System",
+          content: `Herzlich Willkommen im Chatpanda, ${nickname}!`,
+          type: "system",
+          created_at: new Date().toISOString(),
+        };
+        window.dispatchEvent(new CustomEvent("local-message", { detail: welcomeMsg }));
       }
     });
 
     return () => {
       channel.unsubscribe();
     };
-  }, [room, welcomeSent]);
+  }, [room]);
 
   const currentUser = localStorage.getItem("chatpanda_nickname") || "Gast";
 
@@ -110,14 +108,10 @@ export default function ChatRoom({
                 className="flex items-center gap-2 text-gray-300 cursor-pointer hover:text-blue-400"
                 onClick={(e) => {
                   e.preventDefault();
-                  // 👇 Eigener User: nur Statistik erlauben
-                  if (user.nickname === currentUser) {
-                    if (onUserClick) {
-                      onUserClick(user.nickname, { x: e.clientX, y: e.clientY });
-                    }
-                    return;
-                  }
-                  if (onUserClick) {
+                  if (user.nickname !== currentUser && onUserClick) {
+                    onUserClick(user.nickname, { x: e.clientX, y: e.clientY });
+                  } else if (user.nickname === currentUser && onUserClick) {
+                    // eigener User → nur Statistik
                     onUserClick(user.nickname, { x: e.clientX, y: e.clientY });
                   }
                 }}
