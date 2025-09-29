@@ -16,15 +16,9 @@ const genderMap: Record<string, { icon: string; color: string }> = {
   u: { icon: "?", color: "text-gray-400" },
 };
 
-export default function ChatRoom({
-  room,
-  onUserClick,
-}: {
-  room: string;
-  onUserClick?: (user: string, pos: { x: number; y: number }) => void;
-}) {
+export default function ChatRoom({ room, onUserClick }: { room: string; onUserClick?: (user: string, pos: { x: number; y: number }) => void }) {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
-  const hasWelcomed = useRef(false); // ✅ verhindert doppelte Willkommensnachricht
+  const hasWelcomed = useRef(false);
 
   useEffect(() => {
     const nickname = localStorage.getItem("chatpanda_nickname") || "Gast";
@@ -34,10 +28,9 @@ export default function ChatRoom({
       config: { presence: { key: nickname } },
     });
 
-    // JOIN → Nur Nachricht, wenn es wirklich ein neuer User ist
+    // JOIN → global sichtbar
     channel.on("presence", { event: "join" }, async ({ key }) => {
       if (key === nickname) return;
-      console.log("JOIN:", key);
       await supabase.from("messages").insert({
         room,
         username: "System",
@@ -46,10 +39,9 @@ export default function ChatRoom({
       });
     });
 
-    // LEAVE → Systemnachricht
+    // LEAVE → global sichtbar
     channel.on("presence", { event: "leave" }, async ({ key }) => {
       if (key === nickname) return;
-      console.log("LEAVE:", key);
       await supabase.from("messages").insert({
         room,
         username: "System",
@@ -58,22 +50,19 @@ export default function ChatRoom({
       });
     });
 
-    // SYNC → Liste der User aktualisieren
+    // SYNC → Online-Liste stabilisieren
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
       const users: OnlineUser[] = [];
       Object.values(state).forEach((arr) => {
         (arr as unknown as OnlineUser[]).forEach((user) => {
-          if (user.nickname) {
-            users.push({
-              nickname: user.nickname,
-              gender: user.gender ?? "u",
-              online_at: user.online_at ?? new Date().toISOString(),
-            });
-          }
+          users.push({
+            nickname: user.nickname,
+            gender: user.gender ?? "u",
+            online_at: user.online_at ?? new Date().toISOString(),
+          });
         });
       });
-      console.log("Online Users parsed:", users);
       setOnlineUsers(users);
     });
 
@@ -84,16 +73,18 @@ export default function ChatRoom({
           gender,
           online_at: new Date().toISOString(),
         });
-        console.log("Tracking gestartet:", nickname);
 
-        // ✅ Willkommensnachricht nur EINMAL pro Client
+        // ✅ Willkommen nur einmal, nur lokal
         if (!hasWelcomed.current) {
-          await supabase.from("messages").insert({
+          const welcomeMsg = {
+            id: `local-${Date.now()}`,
             room,
             username: "System",
             content: `Herzlich Willkommen im Chatpanda, ${nickname}!`,
             type: "system",
-          });
+            created_at: new Date().toISOString(),
+          };
+          window.dispatchEvent(new CustomEvent("chatpanda-local-message", { detail: welcomeMsg }));
           hasWelcomed.current = true;
         }
       }
@@ -102,7 +93,7 @@ export default function ChatRoom({
     return () => {
       channel.unsubscribe();
     };
-  }, [room]); // ❌ onlineUsers entfernt → kein Loop mehr
+  }, [room]);
 
   return (
     <div className="bg-gray-900 p-4 rounded-lg relative">
@@ -122,9 +113,7 @@ export default function ChatRoom({
                   onUserClick?.(user.nickname, { x: e.clientX, y: e.clientY });
                 }}
               >
-                <span className={`${g.color} w-5 text-center inline-block`}>
-                  {g.icon}
-                </span>
+                <span className={`${g.color} w-5 text-center inline-block`}>{g.icon}</span>
                 <span className="font-semibold">{user.nickname}</span>
               </li>
             );
