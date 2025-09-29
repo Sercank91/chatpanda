@@ -5,9 +5,9 @@ import { Rnd } from "react-rnd";
 import { supabase } from "@/lib/supabase/browser";
 
 type PrivateChatWindowProps = {
-  user: string; // Empfänger
+  user: string;
   onClose: () => void;
-  initialMessages?: { from: string; text: string }[]; // ✅ NEU
+  initialMessages?: { from: string; text: string }[];
 };
 
 type Message = {
@@ -18,13 +18,13 @@ type Message = {
 export default function PrivateChatWindow({
   user,
   onClose,
-  initialMessages = [], // ✅ Standardwert = leer
+  initialMessages = [],
 }: PrivateChatWindowProps) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages); // ✅ Start mit übergebenen Nachrichten
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [myNickname, setMyNickname] = useState("Ich");
 
-  // 🔹 Nickname nur im Browser auslesen
+  // Nickname laden
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("chatpanda_nickname");
@@ -32,7 +32,12 @@ export default function PrivateChatWindow({
     }
   }, []);
 
-  // 🔹 Realtime Subscription (beide Richtungen!)
+  // ✅ Synchronisierung mit page.tsx
+  useEffect(() => {
+    setMessages(initialMessages);
+  }, [initialMessages]);
+
+  // Realtime Subscription
   useEffect(() => {
     if (!myNickname || !user) return;
 
@@ -40,18 +45,18 @@ export default function PrivateChatWindow({
       .channel(`dm:${myNickname}-${user}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "private_messages",
-          filter: `or(and(to_nickname.eq.${myNickname},from_nickname.eq.${user}),and(to_nickname.eq.${user},from_nickname.eq.${myNickname}))`,
-        },
+        { event: "INSERT", schema: "public", table: "private_messages" },
         (payload) => {
           const m = payload.new as {
             from_nickname: string;
+            to_nickname: string;
             message: string;
           };
-          if (m && m.from_nickname && m.message) {
+
+          if (
+            (m.from_nickname === user && m.to_nickname === myNickname) ||
+            (m.from_nickname === myNickname && m.to_nickname === user)
+          ) {
             setMessages((prev) => [...prev, { from: m.from_nickname, text: m.message }]);
           }
         }
@@ -67,8 +72,6 @@ export default function PrivateChatWindow({
     if (!input.trim() || !myNickname || !user) return;
 
     const text = input.trim();
-
-    // 🔹 Sofort lokal anzeigen
     setMessages((prev) => [...prev, { from: myNickname, text }]);
     setInput("");
 
@@ -79,9 +82,7 @@ export default function PrivateChatWindow({
         message: text,
       });
 
-      if (error) {
-        console.error("Fehler beim Senden:", error.message);
-      }
+      if (error) console.error("Fehler beim Senden:", error.message);
     } catch (err) {
       console.error("Unerwarteter Fehler:", err);
     }
@@ -89,12 +90,7 @@ export default function PrivateChatWindow({
 
   return (
     <Rnd
-      default={{
-        x: 100,
-        y: 100,
-        width: 300,
-        height: 350,
-      }}
+      default={{ x: 100, y: 100, width: 300, height: 350 }}
       bounds="window"
       dragHandleClassName="header"
       enableResizing={false}
@@ -103,9 +99,7 @@ export default function PrivateChatWindow({
         {/* Header */}
         <div className="header cursor-move bg-blue-600 px-3 py-2 rounded-t-lg flex justify-between items-center">
           <span className="font-semibold">Privatchat mit {user}</span>
-          <button onClick={onClose} className="text-white hover:text-red-400">
-            ✖
-          </button>
+          <button onClick={onClose} className="text-white hover:text-red-400">✖</button>
         </div>
 
         {/* Nachrichtenbereich */}
