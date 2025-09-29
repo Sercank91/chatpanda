@@ -41,10 +41,10 @@ export default function ChatInput({ room }: { room: string }) {
   }
 
   return (
-    <form
-      onSubmit={sendMessage}
-      className="flex items-center gap-2 border-t border-gray-800 pt-2"
-    >
+	<form
+	  className="flex items-center gap-2 border-t border-gray-800"
+	  style={{ padding: "10px" }}
+	>
       <input
         type="text"
         value={message}
