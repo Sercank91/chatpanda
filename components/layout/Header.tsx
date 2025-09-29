@@ -1,23 +1,34 @@
+// components/layout/Header.tsx
 "use client";
 
 import Link from "next/link";
 
 export default function Header() {
   return (
-    <header className="w-full bg-gray-950 text-white shadow-md sticky top-0 z-50">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+    <header className="fixed top-0 left-0 w-full z-50 bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950 border-b border-gray-800">
+      <div className="mx-auto max-w-6xl flex items-center justify-between px-4 py-2">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-3xl">🐼</span>
-          <span className="text-xl font-bold tracking-wide">ChatPanda</span>
+        <Link href="/" className="flex items-center gap-2 group">
+          <span className="text-2xl transition-transform group-hover:scale-110">
+            🐼
+          </span>
+          <span className="text-lg font-bold tracking-wide bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            ChatPanda
+          </span>
         </Link>
 
         {/* Navigation */}
         <nav className="flex gap-6 text-sm font-medium">
-          <Link href="/" className="hover:text-purple-400 transition">
+          <Link
+            href="/"
+            className="text-gray-300 hover:text-purple-400 transition-colors"
+          >
             Startseite
           </Link>
-          <Link href="/chatpanda" className="hover:text-purple-400 transition">
+          <Link
+            href="/chatpanda"
+            className="text-gray-300 hover:text-purple-400 transition-colors"
+          >
             Chat
           </Link>
         </nav>
