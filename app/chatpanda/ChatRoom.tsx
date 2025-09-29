@@ -36,9 +36,16 @@ export default function ChatRoom({
       config: { presence: { key: nickname } },
     });
 
-    // 👥 JOIN Event -> nur für andere
+    // 👥 JOIN Event -> nur für andere und nur wenn wirklich neu
     channel.on("presence", { event: "join" }, async ({ key }) => {
       if (key === nickname) return; // eigene Join-Meldung ignorieren
+
+      const alreadyOnline = onlineUsers.some((u) => u.nickname === key);
+      if (alreadyOnline) {
+        console.log("JOIN ignoriert, User war schon online:", key);
+        return;
+      }
+
       console.log("JOIN:", key);
       await supabase.from("messages").insert({
         room: room,
@@ -104,7 +111,7 @@ export default function ChatRoom({
     return () => {
       channel.unsubscribe();
     };
-  }, [room]);
+  }, [room, onlineUsers]);
 
   return (
     <div className="bg-gray-900 p-4 rounded-lg relative">
