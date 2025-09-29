@@ -6,6 +6,7 @@ export default function ChatInput({ room }: { room: string }) {
   const [lastSent, setLastSent] = useState<number>(0);
   const [history, setHistory] = useState<number[]>([]);
   const [cooldownUntil, setCooldownUntil] = useState<number>(0);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const lastMessageRef = useRef<string>("");
 
@@ -23,8 +24,6 @@ export default function ChatInput({ room }: { room: string }) {
 
     // 2. Temporärer Block aktiv
     if (now < cooldownUntil) {
-      const rest = Math.ceil((cooldownUntil - now) / 1000);
-      setError(`Bitte warte noch ${rest}s wegen Flooding.`);
       return;
     }
 
@@ -83,20 +82,26 @@ export default function ChatInput({ room }: { room: string }) {
     }
   }
 
-  // Countdown automatisch aktualisieren
+  // Countdown aktualisieren
   useEffect(() => {
     if (!cooldownUntil) return;
+
     const interval = setInterval(() => {
-      if (Date.now() >= cooldownUntil) {
+      const diff = cooldownUntil - Date.now();
+      if (diff <= 0) {
+        clearInterval(interval);
         setCooldownUntil(0);
+        setTimeLeft(0);
         setError(null);
+      } else {
+        setTimeLeft(Math.ceil(diff / 1000));
       }
     }, 1000);
+
     return () => clearInterval(interval);
   }, [cooldownUntil]);
 
-  const now = Date.now();
-  const cooldownActive = now < cooldownUntil;
+  const cooldownActive = cooldownUntil > Date.now();
 
   return (
     <form
@@ -110,7 +115,7 @@ export default function ChatInput({ room }: { room: string }) {
           onChange={(e) => setMessage(e.target.value)}
           placeholder={
             cooldownActive
-              ? `Gesperrt für ${Math.ceil((cooldownUntil - now) / 1000)}s`
+              ? `Gesperrt für ${timeLeft}s`
               : "Nachricht schreiben..."
           }
           disabled={cooldownActive}
@@ -125,11 +130,11 @@ export default function ChatInput({ room }: { room: string }) {
               : "bg-indigo-600 hover:bg-indigo-500 text-white"
           }`}
         >
-          {cooldownActive ? "Gesperrt" : "Senden"}
+          {cooldownActive ? `Warte ${timeLeft}s` : "Senden"}
         </button>
       </div>
 
-      {/* ✅ Freundlicher Hinweis */}
+      {/* ✅ Hinweis */}
       {error && <p className="text-red-400 text-xs">{error}</p>}
     </form>
   );
