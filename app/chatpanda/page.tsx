@@ -56,7 +56,9 @@ export default function ChatpandaPage() {
         }
       )
       .subscribe();
-    return () => supabase.removeChannel(channel);
+    return () => {
+      supabase.removeChannel(channel).catch(() => {});
+    };
   }, [nickname]);
 
   if (!nickname || !gender) {
@@ -68,8 +70,8 @@ export default function ChatpandaPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3rem)]"> {/* 3rem = Header Höhe */}
-      {/* Begrüßung */}
+    <div className="flex flex-col h-screen">
+      {/* Begrüßung direkt unter dem Header */}
       <div className="border-b bg-gray-900 px-4 py-2 text-sm text-gray-300">
         Hallo, <span className="font-semibold text-purple-400">{nickname}</span>
       </div>
@@ -78,9 +80,12 @@ export default function ChatpandaPage() {
       <div className="flex-1 flex min-h-0">
         {/* Chat + Input */}
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 overflow-y-auto p-4 pb-24">
+          {/* Scrollbarer Chatfeed, mit Platz für Input */}
+          <div className="flex-1 overflow-y-auto p-4 pb-20">
             <ChatFeed />
           </div>
+
+          {/* Fixiertes Input-Feld unten */}
           <div className="border-t bg-gray-900 shadow-lg p-2">
             <ChatInput room="global" />
           </div>
