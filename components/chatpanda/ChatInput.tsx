@@ -1,28 +1,12 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 
 export default function ChatInput({ room }: { room: string }) {
   const [message, setMessage] = useState("");
   const [lastSent, setLastSent] = useState<number>(0);
   const [history, setHistory] = useState<number[]>([]);
+  const [cooldownUntil, setCooldownUntil] = useState<number>(0);
   const lastMessageRef = useRef<string>("");
-
-  // ⏳ State für Cooldown
-  const [cooldownActive, setCooldownActive] = useState(false);
-
-  useEffect(() => {
-    if (!lastSent) return;
-    setCooldownActive(true);
-
-    const interval = setInterval(() => {
-      if (Date.now() - lastSent >= 1000) {
-        setCooldownActive(false);
-        clearInterval(interval);
-      }
-    }, 200);
-
-    return () => clearInterval(interval);
-  }, [lastSent]);
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
@@ -30,24 +14,40 @@ export default function ChatInput({ room }: { room: string }) {
 
     if (!message.trim()) return;
 
-    if (message.length > 500) {
-      alert("Nachricht zu lang (max. 500 Zeichen).");
+    // 1. Max Länge
+    if (message.length > 300) {
+      alert("Nachricht zu lang (max. 300 Zeichen).");
       return;
     }
 
-    if (cooldownActive) return;
+    // 2. Temporärer Block aktiv
+    if (now < cooldownUntil) {
+      const rest = Math.ceil((cooldownUntil - now) / 1000);
+      alert(`Du bist noch ${rest}s blockiert wegen Flooding.`);
+      return;
+    }
 
-    const newHistory = [...history.filter((t) => now - t < 10000), now];
+    // 3. Mindestens 2 Sekunden zwischen Nachrichten
+    if (now - lastSent < 2000) {
+      alert("Bitte warte mindestens 2 Sekunden zwischen Nachrichten.");
+      return;
+    }
+
+    // 4. Rate Limit – max. 5 Nachrichten pro 15 Sekunden
+    const newHistory = [...history.filter((t) => now - t < 15000), now];
     if (newHistory.length > 5) {
-      alert("Zu viele Nachrichten in kurzer Zeit.");
+      setCooldownUntil(now + 30000); // 30 Sekunden block
+      alert("Flood erkannt! Du bist 30 Sekunden blockiert.");
       return;
     }
 
+    // 5. Gleiche Nachricht wie zuletzt → blocken
     if (lastMessageRef.current === message.trim()) {
-      alert("Du hast dieselbe Nachricht gerade eben gesendet.");
+      alert("Bitte nicht die gleiche Nachricht wiederholen.");
       return;
     }
 
+    // Nickname & Gender
     const nickname = localStorage.getItem("chatpanda_nickname");
     const gender = localStorage.getItem("chatpanda_gender");
 
@@ -81,6 +81,9 @@ export default function ChatInput({ room }: { room: string }) {
     }
   }
 
+  const now = Date.now();
+  const cooldownActive = now < cooldownUntil;
+
   return (
     <form
       onSubmit={sendMessage}
@@ -91,8 +94,13 @@ export default function ChatInput({ room }: { room: string }) {
         type="text"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        placeholder="Nachricht schreiben..."
-        className="flex-1 rounded-lg bg-gray-900 px-4 py-2 outline-none focus:ring-2 focus:ring-indigo-500"
+        placeholder={
+          cooldownActive
+            ? `Gesperrt für ${Math.ceil((cooldownUntil - now) / 1000)}s`
+            : "Nachricht schreiben..."
+        }
+        disabled={cooldownActive}
+        className="flex-1 rounded-lg bg-gray-900 px-4 py-2 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
       />
       <button
         type="submit"
@@ -103,7 +111,7 @@ export default function ChatInput({ room }: { room: string }) {
             : "bg-indigo-600 hover:bg-indigo-500 text-white"
         }`}
       >
-        {cooldownActive ? "Warte..." : "Senden"}
+        {cooldownActive ? "Gesperrt" : "Senden"}
       </button>
     </form>
   );
