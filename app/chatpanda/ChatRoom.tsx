@@ -18,6 +18,7 @@ const genderMap: Record<string, { icon: string; color: string }> = {
   u: { icon: "?", color: "text-gray-400" }, // fallback für unbekannt
 };
 
+// 🔹 Props erweitert um onUserClick
 export default function ChatRoom({
   room,
   onUserClick,
@@ -35,41 +36,8 @@ export default function ChatRoom({
       config: { presence: { key: nickname } },
     });
 
-    // 👥 JOIN Event -> nur für wirklich neue User
-    channel.on("presence", { event: "join" }, async ({ newPresences }) => {
-      if (!newPresences?.length) return;
-
-      // ✅ Typisierung absichern
-      const raw = newPresences[0] as unknown as {
-        nickname?: string;
-        gender?: string;
-        online_at?: string;
-      };
-      if (!raw.nickname) return;
-
-      if (raw.nickname === nickname) return; // eigene Join-Meldung ignorieren
-
-      await supabase.from("messages").insert({
-        room,
-        username: "System",
-        content: `${raw.nickname} ist dem Raum beigetreten.`,
-        type: "system",
-      });
-    });
-
-    // 👋 LEAVE Event -> nur für andere
-    channel.on("presence", { event: "leave" }, async ({ key }) => {
-      if (key === nickname) return;
-      await supabase.from("messages").insert({
-        room,
-        username: "System",
-        content: `${key} hat den Raum verlassen.`,
-        type: "system",
-      });
-    });
-
-    // 🔄 SYNC → Online-Liste aktualisieren
-    channel.on("presence", { event: "sync" }, () => {
+    // 🔹 Präsenz-Änderungen überwachen
+    channel.on("presence", { event: "sync" }, async () => {
       const state = channel.presenceState();
       const users: OnlineUser[] = [];
 
@@ -85,10 +53,38 @@ export default function ChatRoom({
         });
       });
 
+      // 🔹 Unterschiede berechnen
+      const oldNames = new Set(onlineUsers.map((u) => u.nickname));
+      const newNames = new Set(users.map((u) => u.nickname));
+
+      // 👉 Neue User = "ist dem Raum beigetreten"
+      for (const u of users) {
+        if (!oldNames.has(u.nickname) && u.nickname !== nickname) {
+          await supabase.from("messages").insert({
+            room,
+            username: "System",
+            content: `${u.nickname} ist dem Raum beigetreten.`,
+            type: "system",
+          });
+        }
+      }
+
+      // 👉 Entfernte User = "hat den Raum verlassen"
+      for (const u of onlineUsers) {
+        if (!newNames.has(u.nickname) && u.nickname !== nickname) {
+          await supabase.from("messages").insert({
+            room,
+            username: "System",
+            content: `${u.nickname} hat den Raum verlassen.`,
+            type: "system",
+          });
+        }
+      }
+
       setOnlineUsers(users);
     });
 
-    // ✅ Willkommensnachricht nur für eigenen Eintritt
+    // 🔹 Beitritt + eigene Willkommensnachricht
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         channel.track({
@@ -97,6 +93,7 @@ export default function ChatRoom({
           online_at: new Date().toISOString(),
         });
 
+        // nur der eigene Client bekommt diese Willkommensnachricht
         await supabase.from("messages").insert({
           room,
           username: "System",
@@ -109,7 +106,7 @@ export default function ChatRoom({
     return () => {
       channel.unsubscribe();
     };
-  }, [room]);
+  }, [room, onlineUsers]);
 
   return (
     <div className="bg-gray-900 p-4 rounded-lg relative">
@@ -134,9 +131,11 @@ export default function ChatRoom({
                   }
                 }}
               >
+                {/* Links: Geschlecht */}
                 <span className={`${g.color} w-5 text-center inline-block`}>
                   {g.icon}
                 </span>
+                {/* Rechts: Nickname */}
                 <span className="font-semibold">{user.nickname}</span>
               </li>
             );
