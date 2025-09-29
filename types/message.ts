@@ -6,5 +6,6 @@ export type Message = {
   username: string;
   content: string;
   gender: string;
+  type?: "system" | "user";
   created_at: string;
 };
