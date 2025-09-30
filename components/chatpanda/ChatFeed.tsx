@@ -33,7 +33,8 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
 
       if (blockedUsers.includes(msg.username)) return;
 
-      if (msg.isLocalFail) {
+      // Prüfen ob es ein UserMessage mit isLocalFail ist
+      if ("isLocalFail" in msg && msg.isLocalFail) {
         setMessages((prev) => [
           ...prev,
           createGlobalSystemMessage("🚫 Deine Nachricht konnte nicht zugestellt werden."),
@@ -42,7 +43,7 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
       }
 
       // Falls eine Systemnachricht direkt vom Server kommt
-      if ("type" in msg && msg.type === "system") {
+      if (msg.type === "system") {
         setMessages((prev) => [
           ...prev,
           createGlobalSystemMessage(msg.content || "ℹ️ Systemhinweis"),
