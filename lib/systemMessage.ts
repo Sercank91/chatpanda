@@ -17,6 +17,10 @@ export function createGlobalSystemMessage(content: string) {
     content,
     type: "system" as const,
     created_at: new Date().toISOString(),
+    // Dummy-Felder, damit es dem Message-Type entspricht
+    room: "global",
+    user_id: "system",
+    gender: "u",
   };
 }
 
@@ -28,5 +32,9 @@ export function createSystemMessage(content: string) {
     content,
     type: "system" as const,
     created_at: new Date().toISOString(),
+    // Dummy-Felder, falls eine Route es als Message zurückgibt
+    room: "global",
+    user_id: "system",
+    gender: "u",
   };
 }
