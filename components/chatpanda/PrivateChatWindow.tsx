@@ -122,7 +122,7 @@ export default function PrivateChatWindow({
       if (!res.ok) {
         if (res.status === 429 && data.retry_after) {
           setCooldownUntil(Date.now() + data.retry_after * 1000);
-        } else if (res.status === 403) {
+        } else if (res.status === 403 || data.system) {
           // ⬅️ Systemmeldung automatisch einfügen
           setMessages((prev) => [
             ...prev,
