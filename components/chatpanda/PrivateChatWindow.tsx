@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Rnd } from "react-rnd";
 import { supabase } from "@/lib/supabase/browser";
+import { createPrivateSystemMessage } from "@/lib/systemMessage";
 
 type PrivateChatWindowProps = {
   user: string;
@@ -121,18 +122,12 @@ export default function PrivateChatWindow({
         if (res.status === 429 && data.retry_after) {
           setCooldownUntil(Date.now() + data.retry_after * 1000);
         } else if (res.status === 403 || data.system) {
-          // ✅ Systemnachricht anzeigen
-          if (data.system) {
-            setMessages((prev) => [
-              ...prev,
-              { from: data.system.username, text: data.system.content, type: "system" },
-            ]);
-          } else {
-            setMessages((prev) => [
-              ...prev,
-              { from: "System", text: data.error || "🚫 Nachricht konnte nicht zugestellt werden.", type: "system" },
-            ]);
-          }
+          setMessages((prev) => [
+            ...prev,
+            createPrivateSystemMessage(
+              data.error || data.system?.content || "🚫 Nachricht konnte nicht zugestellt werden."
+            ),
+          ]);
         } else {
           console.error("❌ Fehler:", data.error || res.statusText);
         }
@@ -142,10 +137,7 @@ export default function PrivateChatWindow({
       // Erfolgreich → Realtime übernimmt
     } catch (err) {
       console.error("🔥 Netzwerkfehler:", err);
-      setMessages((prev) => [
-        ...prev,
-        { from: "System", text: "Netzwerkfehler beim Senden.", type: "system" },
-      ]);
+      setMessages((prev) => [...prev, createPrivateSystemMessage("Netzwerkfehler beim Senden.")]);
     }
   }
 

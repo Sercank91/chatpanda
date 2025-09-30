@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 import type { Message } from "@/types/message";
-import { createSystemMessage } from "@/lib/systemMessage";
+import { createGlobalSystemMessage } from "@/lib/systemMessage";
 
 type Props = { initial?: Message[]; blockedUsers?: string[] };
 
@@ -12,6 +12,7 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    // Realtime Subscription auf globale Nachrichten
     const channel = supabase
       .channel("public:messages")
       .on(
@@ -25,6 +26,7 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
       )
       .subscribe();
 
+    // Lokale Events (z. B. LocalFail oder Systemhinweise)
     const handler = (e: Event) => {
       const custom = e as CustomEvent<Message>;
       const msg = custom.detail;
@@ -34,12 +36,21 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
       if (msg.isLocalFail) {
         setMessages((prev) => [
           ...prev,
-          createSystemMessage("🚫 Deine Nachricht konnte nicht zugestellt werden."),
+          createGlobalSystemMessage("🚫 Deine Nachricht konnte nicht zugestellt werden."),
         ]);
         return;
       }
 
-      // Normale Nachrichten
+      // Falls eine Systemnachricht direkt vom Server kommt
+      if ("type" in msg && msg.type === "system") {
+        setMessages((prev) => [
+          ...prev,
+          createGlobalSystemMessage(msg.content || "ℹ️ Systemhinweis"),
+        ]);
+        return;
+      }
+
+      // Normale Nachricht durchlassen
       setMessages((prev) => [...prev, msg]);
     };
     window.addEventListener("local-message", handler);
@@ -50,11 +61,13 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
     };
   }, [blockedUsers]);
 
+  // Immer nach unten scrollen
   useEffect(() => {
     if (!bottomRef.current) return;
     bottomRef.current.scrollIntoView({ behavior: messages.length <= 1 ? "auto" : "smooth" });
   }, [messages]);
 
+  // Blockierte User herausfiltern
   const visibleMessages = messages.filter((m) => !blockedUsers.includes(m.username));
 
   if (!visibleMessages.length) {
