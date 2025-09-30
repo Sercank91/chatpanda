@@ -119,7 +119,7 @@ export default function PrivateChatWindow({
       if (checkData2.blocked) {
         setMessages((prev) => [
           ...prev,
-          { from: "System", text: `🚫 Du hast ${user} blockiert. Bitte Blockierung aufheben.`, type: "system" },
+          { from: "System", text: `🚫 Du hast ${user} blockiert. Bitte Blockierung aufheben, um Nachrichten zu senden.`, type: "system" },
         ]);
         return;
       }
@@ -206,7 +206,9 @@ export default function PrivateChatWindow({
             <div
               key={i}
               className={`p-2 rounded text-left ${
-                m.type === "system" ? "bg-red-800 text-red-200 italic" : "bg-gray-800"
+                m.type === "system"
+                  ? "bg-gray-900/70 text-yellow-300 italic" // angepasst: gelb wie Willkommensnachricht
+                  : "bg-gray-800"
               }`}
             >
               <span className="font-semibold">{m.from}:</span> {m.text}
