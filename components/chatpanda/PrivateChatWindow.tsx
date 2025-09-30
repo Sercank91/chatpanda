@@ -200,22 +200,29 @@ export default function PrivateChatWindow({
         </div>
 
         {/* Nachrichtenbereich */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
-          {messages.length === 0 && <p className="text-gray-400">Noch keine Nachrichten</p>}
-          {messages.map((m, i) => (
-            <div
-              key={i}
-              className={`p-2 rounded text-left ${
-                m.type === "system"
-                  ? "bg-gray-900/70 text-yellow-300 italic" // angepasst: gelb wie Willkommensnachricht
-                  : "bg-gray-800"
-              }`}
-            >
-              <span className="font-semibold">{m.from}:</span> {m.text}
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
+		<div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
+		  {messages.length === 0 && <p className="text-gray-400">Noch keine Nachrichten</p>}
+		  {messages.map((m, i) => (
+			<div
+			  key={i}
+			  className={`p-2 rounded text-left ${
+				m.type === "system"
+				  ? "bg-gray-900/70 text-yellow-300 italic"
+				  : "bg-gray-800"
+			  }`}
+			>
+			  {m.type === "system" ? (
+				<span>{m.text}</span>
+			  ) : (
+				<>
+				  <span className="font-semibold">{m.from}:</span> {m.text}
+				</>
+			  )}
+			</div>
+		  ))}
+		  <div ref={messagesEndRef} />
+		</div>
+
 
         {/* Eingabefeld */}
         <div className="border-t border-gray-700 p-2 flex items-center gap-2">
