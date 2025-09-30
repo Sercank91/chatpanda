@@ -98,18 +98,24 @@ export default function PrivateChatWindow({
     }
   }, [messages]);
 
+  // -------------------------------------
+  // Handle Send mit Gender
+  // -------------------------------------
   async function handleSend() {
     if (!input.trim() || !myNickname || !user) return;
 
     const text = input.trim();
     setInput("");
 
+    // 🔹 Gender aus localStorage laden
+    const gender = (localStorage.getItem("chatpanda_gender") as "m" | "w" | "d" | "u") || "u";
+
     try {
       const sessionRes = await supabase.auth.getSession();
       const accessToken = sessionRes.data?.session?.access_token;
 
       const headers: Record<string, string> = { "Content-Type": "application/json" };
-      const body: Record<string, string> = { to: user, message: text };
+      const body: Record<string, string> = { to: user, message: text, gender };
 
       if (accessToken) {
         headers["Authorization"] = `Bearer ${accessToken}`;
@@ -140,6 +146,9 @@ export default function PrivateChatWindow({
         }
         return;
       }
+
+      // 🔹 Sofort lokal anzeigen (Realtime kommt auch noch)
+      setMessages((prev) => [...prev, { from: myNickname, text, gender, type: "user" }]);
     } catch (err: unknown) {
       console.error("🔥 Netzwerkfehler:", err);
       setMessages((prev) => [
@@ -197,9 +206,7 @@ export default function PrivateChatWindow({
                   {m.gender === "m" && <span className="text-blue-400">♂️</span>}
                   {m.gender === "w" && <span className="text-pink-400">♀️</span>}
                   {m.gender === "d" && <span className="text-purple-400">⚧️</span>}
-                  {(!m.gender || m.gender === "u") && (
-                    <span className="text-gray-400">❔</span>
-                  )}
+                  {(!m.gender || m.gender === "u") && <span className="text-gray-400">❔</span>}
                   <span className="font-semibold">{m.from}:</span>
                   <span>{m.text}</span>
                 </div>
