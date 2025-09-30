@@ -1,38 +1,36 @@
-// lib/systemMessage.ts
+import type { SystemMessage, PrivateMessage } from "@/types/message";
 
 // Für Private Chats
-export function createPrivateSystemMessage(text: string) {
+export function createPrivateSystemMessage(text: string): PrivateMessage {
   return {
     from: "System",
     text,
-    type: "system" as const,
+    type: "system",
   };
 }
 
 // Für Global Chat
-export function createGlobalSystemMessage(content: string) {
+export function createGlobalSystemMessage(content: string): SystemMessage {
   return {
     id: `sys-${Date.now()}`,
     username: "System",
     content,
-    type: "system" as const,
+    type: "system",
     created_at: new Date().toISOString(),
-    // Dummy-Felder, damit es dem Message-Type entspricht
     room: "global",
     user_id: "system",
     gender: "u",
   };
 }
 
-// ✅ Generische Variante für API-Routen
-export function createSystemMessage(content: string) {
+// ✅ Generische Variante für API-Routen (gleich wie Global)
+export function createSystemMessage(content: string): SystemMessage {
   return {
     id: `sys-${Date.now()}`,
     username: "System",
     content,
-    type: "system" as const,
+    type: "system",
     created_at: new Date().toISOString(),
-    // Dummy-Felder, falls eine Route es als Message zurückgibt
     room: "global",
     user_id: "system",
     gender: "u",

@@ -126,7 +126,7 @@ export default function PrivateChatWindow({
             ...prev,
             createPrivateSystemMessage(
               data.error || data.system?.content || "🚫 Nachricht konnte nicht zugestellt werden."
-            ),
+            ) as Message,
           ]);
         } else {
           console.error("❌ Fehler:", data.error || res.statusText);
@@ -137,7 +137,10 @@ export default function PrivateChatWindow({
       // Erfolgreich → Realtime übernimmt
     } catch (err) {
       console.error("🔥 Netzwerkfehler:", err);
-      setMessages((prev) => [...prev, createPrivateSystemMessage("Netzwerkfehler beim Senden.")]);
+      setMessages((prev) => [
+        ...prev,
+        createPrivateSystemMessage("Netzwerkfehler beim Senden.") as Message,
+      ]);
     }
   }
 

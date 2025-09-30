@@ -1,6 +1,4 @@
-// types/message.ts
-
-// Normale Nachricht
+// Normale Nachricht (Global Chat)
 export type UserMessage = {
   id: string;
   room: string;
@@ -13,14 +11,24 @@ export type UserMessage = {
   isLocalFail?: boolean;
 };
 
-// Systemnachricht
+// Systemnachricht (Global Chat)
 export type SystemMessage = {
   id: string;
   username: "System";
   content: string;
   type: "system";
   created_at: string;
+  room: string;
+  user_id: string;
+  gender: string;
 };
 
-// Union
-export type Message = UserMessage | SystemMessage;
+// Private Nachricht (1:1 Chat)
+export type PrivateMessage = {
+  from: string;
+  text: string;
+  type?: "user" | "system";
+};
+
+// Union für alle Chats
+export type Message = UserMessage | SystemMessage | PrivateMessage;
