@@ -8,12 +8,13 @@ import { Smile, AlertTriangle, Ban, Send } from "lucide-react";
 type PrivateChatWindowProps = {
   user: string;
   onClose: () => void;
-  initialMessages?: { from: string; text: string }[];
+  initialMessages?: { from: string; text: string; gender?: "m" | "w" | "d" | "u" }[];
 };
 
 type Message = {
   from: string;
   text: string;
+  gender?: "m" | "w" | "d" | "u";
   type?: "system" | "user";
 };
 
@@ -26,8 +27,8 @@ export default function PrivateChatWindow({
   const [input, setInput] = useState("");
   const [myNickname, setMyNickname] = useState("Ich");
   const [showSmileyBox, setShowSmileyBox] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false); // 🔹 Verstoß melden Modal
-  const [showBlockModal, setShowBlockModal] = useState(false); // 🔹 Blockieren Modal
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showBlockModal, setShowBlockModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const [cooldownUntil, setCooldownUntil] = useState<number>(0);
@@ -62,6 +63,7 @@ export default function PrivateChatWindow({
             from_nickname: string;
             to_nickname: string;
             message: string;
+            gender?: "m" | "w" | "d" | "u";
           };
 
           const blockedRaw = localStorage.getItem("chatpanda_blocked");
@@ -77,7 +79,7 @@ export default function PrivateChatWindow({
           ) {
             setMessages((prev) => [
               ...prev,
-              { from: m.from_nickname, text: m.message, type: "user" },
+              { from: m.from_nickname, text: m.message, gender: m.gender || "u", type: "user" },
             ]);
           }
         }
@@ -191,9 +193,16 @@ export default function PrivateChatWindow({
               {m.type === "system" ? (
                 <span>{m.text}</span>
               ) : (
-                <>
-                  <span className="font-semibold">{m.from}:</span> {m.text}
-                </>
+                <div className="flex items-center gap-1">
+                  {m.gender === "m" && <span className="text-blue-400">♂️</span>}
+                  {m.gender === "w" && <span className="text-pink-400">♀️</span>}
+                  {m.gender === "d" && <span className="text-purple-400">⚧️</span>}
+                  {(!m.gender || m.gender === "u") && (
+                    <span className="text-gray-400">❔</span>
+                  )}
+                  <span className="font-semibold">{m.from}:</span>
+                  <span>{m.text}</span>
+                </div>
               )}
             </div>
           ))}
@@ -271,7 +280,7 @@ export default function PrivateChatWindow({
         </div>
       </div>
 
-      {/* 🔹 Report Modal */}
+      {/* Report Modal */}
       {showReportModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-gray-900 text-white p-6 rounded-lg shadow-lg w-96 space-y-4">
@@ -302,7 +311,7 @@ export default function PrivateChatWindow({
         </div>
       )}
 
-      {/* 🔹 Block Modal */}
+      {/* Block Modal */}
       {showBlockModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-gray-900 text-white p-6 rounded-lg shadow-lg w-96 space-y-4">
@@ -322,7 +331,7 @@ export default function PrivateChatWindow({
               <button
                 onClick={() => {
                   setShowBlockModal(false);
-                  alert(`🚫 ${user} wurde blockiert!`);
+                  alert(`🚫 {user} wurde blockiert!`);
                 }}
                 className="px-3 py-1 rounded bg-red-600 hover:bg-red-500"
               >
