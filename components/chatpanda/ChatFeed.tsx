@@ -27,17 +27,16 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
       .subscribe();
 
     // Lokale Events (z. B. LocalFail oder Systemhinweise)
-    const handler = (e: Event) => {
-      const custom = e as CustomEvent<Message>;
-      const msg = custom.detail;
+    const handler = (e: CustomEvent<Message>) => {
+      const msg = e.detail;
 
       if (blockedUsers.includes(msg.username)) return;
 
       // Prüfen ob es ein UserMessage mit isLocalFail ist
-      if ("isLocalFail" in msg && (msg as any).isLocalFail) {
+      if ("isLocalFail" in msg && msg.isLocalFail) {
         setMessages((prev) => [
           ...prev,
-          createGlobalSystemMessage("🚫 Deine Nachricht konnte nicht zugestellt werden."),
+          createGlobalSystemMessage("🚫 Deine Nachricht konnte nicht zugestellt werden.") as Message,
         ]);
         return;
       }
@@ -46,7 +45,7 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
       if (msg.type === "system") {
         setMessages((prev) => [
           ...prev,
-          createGlobalSystemMessage(msg.content || "ℹ️ Systemhinweis"),
+          createGlobalSystemMessage(msg.content || "ℹ️ Systemhinweis") as Message,
         ]);
         return;
       }
@@ -54,11 +53,11 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
       // Normale Nachricht durchlassen
       setMessages((prev) => [...prev, msg]);
     };
-    window.addEventListener("local-message", handler);
+    window.addEventListener("local-message", handler as EventListener);
 
     return () => {
       supabase.removeChannel(channel);
-      window.removeEventListener("local-message", handler);
+      window.removeEventListener("local-message", handler as EventListener);
     };
   }, [blockedUsers]);
 
