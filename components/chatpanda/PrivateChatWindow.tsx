@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Rnd } from "react-rnd";
 import { supabase } from "@/lib/supabase/browser";
+import { createSystemMessage } from "@/lib/systemMessage";
 
 type PrivateChatWindowProps = {
   user: string;
@@ -27,14 +28,6 @@ export default function PrivateChatWindow({
 
   const [cooldownUntil, setCooldownUntil] = useState<number>(0);
 
-  // 🔹 Helper zum Hinzufügen von Systemnachrichten
-  function addSystemMessage(text: string) {
-    setMessages((prev) => [
-      ...prev,
-      { from: "System", text, type: "system" },
-    ]);
-  }
-
   // Nickname laden
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -48,8 +41,7 @@ export default function PrivateChatWindow({
     if (initialMessages.length > 0) {
       setMessages(initialMessages.map((m) => ({ ...m, type: "user" })));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialMessages]);
 
   // Realtime Subscription
   useEffect(() => {
@@ -116,11 +108,9 @@ export default function PrivateChatWindow({
       if (accessToken) {
         headers["Authorization"] = `Bearer ${accessToken}`;
       } else {
-        // Gastmodus → Nickname mitschicken
         body["from"] = myNickname;
       }
 
-      // POST senden
       const res = await fetch("/api/chatpanda/send-private", {
         method: "POST",
         headers,
@@ -133,10 +123,16 @@ export default function PrivateChatWindow({
         if (res.status === 429 && data.retry_after) {
           setCooldownUntil(Date.now() + data.retry_after * 1000);
         } else if (res.status === 403 || data.system) {
-          addSystemMessage(data.error || "🚫 Nachricht konnte nicht zugestellt werden.");
+          if (data.system) {
+            setMessages((prev) => [...prev, data.system]);
+          } else {
+            setMessages((prev) => [
+              ...prev,
+              createSystemMessage(data.error || "🚫 Nachricht konnte nicht zugestellt werden."),
+            ]);
+          }
         } else {
           console.error("❌ Fehler:", data.error || res.statusText);
-          addSystemMessage("🚫 Nachricht konnte nicht gesendet werden.");
         }
         return;
       }
@@ -144,7 +140,7 @@ export default function PrivateChatWindow({
       // Erfolgreich → Realtime übernimmt
     } catch (err) {
       console.error("🔥 Netzwerkfehler:", err);
-      addSystemMessage("Netzwerkfehler beim Senden.");
+      setMessages((prev) => [...prev, createSystemMessage("Netzwerkfehler beim Senden.")]);
     }
   }
 

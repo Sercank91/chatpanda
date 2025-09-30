@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { redis } from "@/lib/redis";
+import { createSystemMessage } from "@/lib/systemMessage"; // ⬅️ NEU
 
 interface UserMetadata {
   nickname?: string;
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null);
     if (!body?.to || !body?.message || (!fromNickname && !body?.from)) {
       return NextResponse.json(
-        { error: "Ungültige Anfrage – Felder fehlen.", system: true },
+        { error: "Ungültige Anfrage – Felder fehlen.", system: createSystemMessage("❌ Ungültige Anfrage – Felder fehlen.") },
         { status: 400 }
       );
     }
@@ -56,14 +57,14 @@ export async function POST(req: NextRequest) {
 
     if (blockedByReceiver) {
       return NextResponse.json(
-        { error: `🚫 ${to} hat dich blockiert. Nachricht nicht zugestellt.`, system: true },
+        { error: `🚫 ${to} hat dich blockiert. Nachricht nicht zugestellt.`, system: createSystemMessage(`🚫 ${to} hat dich blockiert. Nachricht nicht zugestellt.`) },
         { status: 403 }
       );
     }
 
     if (blockedBySender) {
       return NextResponse.json(
-        { error: `🚫 Du hast ${to} blockiert. Bitte Blockierung aufheben.`, system: true },
+        { error: `🚫 Du hast ${to} blockiert. Bitte Blockierung aufheben.`, system: createSystemMessage(`🚫 Du hast ${to} blockiert. Bitte Blockierung aufheben.`) },
         { status: 403 }
       );
     }
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
       await redis.set(banKey, "1", "EX", retry_after);
 
       return NextResponse.json(
-        { error: "Zu viele Nachrichten – bitte kurz warten.", retry_after, system: true },
+        { error: "Zu viele Nachrichten – bitte kurz warten.", retry_after, system: createSystemMessage("⚠️ Zu viele Nachrichten – bitte kurz warten.") },
         { status: 429 }
       );
     }
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
     const ttl = await redis.ttl(banKey);
     if (ttl > 0) {
       return NextResponse.json(
-        { error: "Du bist temporär gesperrt.", retry_after: ttl, system: true },
+        { error: "Du bist temporär gesperrt.", retry_after: ttl, system: createSystemMessage(`⏳ Du bist temporär gesperrt (${ttl}s).`) },
         { status: 429 }
       );
     }
@@ -120,7 +121,7 @@ export async function POST(req: NextRequest) {
     if (error) {
       console.error("❌ Supabase Insert Error:", error);
       return NextResponse.json(
-        { error: error.message || "Fehler beim Speichern.", system: true },
+        { error: error.message || "Fehler beim Speichern.", system: createSystemMessage("❌ Fehler beim Speichern der Nachricht.") },
         { status: 500 }
       );
     }
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("🔥 Server Error:", err);
     return NextResponse.json(
-      { error: (err as Error).message || "Interner Serverfehler.", system: true },
+      { error: (err as Error).message || "Interner Serverfehler.", system: createSystemMessage("❌ Interner Serverfehler beim Senden.") },
       { status: 500 }
     );
   }
