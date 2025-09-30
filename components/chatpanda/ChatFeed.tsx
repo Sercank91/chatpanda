@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase/browser";
 import type { Message } from "@/types/message";
 import { createGlobalSystemMessage } from "@/lib/systemMessage";
 import { Shield } from "lucide-react";
-import { Male, Female, Venus, CircleHelp } from "lucide-react";
+import { Mars, Venus, GenderBigender, CircleHelp } from "lucide-react";
 
 
 
@@ -105,16 +105,17 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
 
         return (
           <div key={m.id} className="rounded-md bg-gray-900/70 p-3">
-            <div className="text-xs opacity-70 flex items-center gap-1">
+			<div className="text-xs opacity-70 flex items-center gap-1">
 			  {new Date(m.created_at).toLocaleTimeString()} •{" "}
-			  {m.gender === "m" && <Male className="inline w-3 h-3 text-blue-400" />}
-			  {m.gender === "w" && <Female className="inline w-3 h-3 text-pink-400" />}
-			  {m.gender === "d" && <Venus className="inline w-3 h-3 text-purple-400" />}
+			  {m.gender === "m" && <Mars className="inline w-4 h-4 text-blue-400" />}
+			  {m.gender === "w" && <Venus className="inline w-4 h-4 text-pink-400" />}
+			  {m.gender === "d" && <GenderBigender className="inline w-4 h-4 text-purple-400" />}
 			  {(!m.gender || m.gender === "u") && (
-				<CircleHelp className="inline w-3 h-3 text-gray-400" />
+				<CircleHelp className="inline w-4 h-4 text-gray-400" />
 			  )}
 			  <span className="font-semibold">{m.username}</span>
 			</div>
+
             <div className="text-gray-100">{m.content}</div>
           </div>
         );
