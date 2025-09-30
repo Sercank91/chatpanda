@@ -51,27 +51,13 @@ export default function HomePage() {
       <section className="w-full max-w-md rounded-2xl bg-gray-900/70 backdrop-blur-xl shadow-2xl p-8 space-y-6 text-center animate-fadeIn">
         
         {/* Logo */}
-        <div className="flex justify-center items-center gap-2">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 64 64"
-            className="w-12 h-12 text-indigo-500"
-            fill="currentColor"
-          >
-            <circle cx="32" cy="32" r="30" fill="currentColor" opacity="0.15" />
-            <circle cx="22" cy="24" r="6" fill="currentColor" />
-            <circle cx="42" cy="24" r="6" fill="currentColor" />
-            <circle cx="26" cy="38" r="4" fill="currentColor" />
-            <circle cx="38" cy="38" r="4" fill="currentColor" />
-          </svg>
-          <span className="text-2xl font-bold bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">
-            ChatPanda
-          </span>
-        </div>
+        <div className="flex justify-center">
+		  <div style={{ fontSize: "100px" }}>🐼</div>
+		</div>
 
         {/* Headline */}
         <h1 className="text-3xl md:text-5xl font-extrabold">
-          Willkommen bei <span className="text-indigo-500">ChatPanda</span>
+          Willkommen bei <span className="font-bold bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">ChatPanda</span>
         </h1>
 
         <p className="opacity-80 text-sm md:text-base">
