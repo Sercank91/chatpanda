@@ -98,16 +98,14 @@ export default function PrivateChatWindow({
     }
   }, [messages]);
 
-  // -------------------------------------
   // Handle Send mit Gender
-  // -------------------------------------
   async function handleSend() {
     if (!input.trim() || !myNickname || !user) return;
 
     const text = input.trim();
     setInput("");
 
-    // 🔹 Gender aus localStorage laden
+    // Gender aus localStorage laden
     const gender = (localStorage.getItem("chatpanda_gender") as "m" | "w" | "d" | "u") || "u";
 
     try {
@@ -147,8 +145,7 @@ export default function PrivateChatWindow({
         return;
       }
 
-      // 🔹 Sofort lokal anzeigen (Realtime kommt auch noch)
-      setMessages((prev) => [...prev, { from: myNickname, text, gender, type: "user" }]);
+      // ❌ KEIN lokales setMessages mehr → Realtime übernimmt
     } catch (err: unknown) {
       console.error("🔥 Netzwerkfehler:", err);
       setMessages((prev) => [
