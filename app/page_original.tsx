@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 export default function HomePage() {
   const [nickname, setNickname] = useState("");
   const [gender, setGender] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(""); // 🔹 Neu: Fehlermeldung
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -18,6 +18,7 @@ export default function HomePage() {
     }
 
     try {
+      // 🔹 Nickname-Check API
       const res = await fetch("/api/chatpanda/nickname", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -31,66 +32,44 @@ export default function HomePage() {
         return;
       }
 
-      if (!data.success) {
+      if (!data.success) { // 🔹 Erweiterung
         setError("Nickname konnte nicht reserviert werden.");
         return;
       }
 
+      // Nickname + Gender im Browser speichern
       localStorage.setItem("chatpanda_nickname", nickname.trim());
       localStorage.setItem("chatpanda_gender", gender);
 
+      // Weiterleiten zum Chat
       router.push("/chatpanda");
     } catch (err) {
-      console.error("API Fehler:", err);
+      console.error("API Fehler:", err); // 🔹 err wird genutzt → kein Lint-Fehler
       setError("Serverfehler – bitte später erneut versuchen.");
     }
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black text-gray-100 p-6">
-      <section className="w-full max-w-md rounded-2xl bg-gray-900/70 backdrop-blur-xl shadow-2xl p-8 space-y-6 text-center animate-fadeIn">
-        
-        {/* Logo */}
-        <div className="flex justify-center items-center gap-2">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 64 64"
-            className="w-12 h-12 text-indigo-500"
-            fill="currentColor"
-          >
-            <circle cx="32" cy="32" r="30" fill="currentColor" opacity="0.15" />
-            <circle cx="22" cy="24" r="6" fill="currentColor" />
-            <circle cx="42" cy="24" r="6" fill="currentColor" />
-            <circle cx="26" cy="38" r="4" fill="currentColor" />
-            <circle cx="38" cy="38" r="4" fill="currentColor" />
-          </svg>
-          <span className="text-2xl font-bold bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">
-            ChatPanda
-          </span>
-        </div>
-
-        {/* Headline */}
-        <h1 className="text-3xl md:text-5xl font-extrabold">
-          Willkommen bei <span className="text-indigo-500">ChatPanda</span>
+    <main className="min-h-screen flex flex-col items-center justify-center bg-black text-gray-100 p-6">
+      <section className="w-full max-w-md space-y-6 text-center">
+        <h1 className="text-3xl md:text-5xl font-bold">
+          Willkommen bei <u>Sercans</u> <span className="text-indigo-500">ChatPanda</span>
         </h1>
-
-        <p className="opacity-80 text-sm md:text-base">
+        <p className="opacity-80">
           Kostenlos chatten ohne Anmeldung – wähle einfach einen Nickname und starte sofort!
         </p>
 
-        {/* Formular */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
             placeholder="Dein Nickname"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
-            className="w-full rounded-lg bg-gray-800/70 px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-gray-800 transition"
+            className="w-full rounded-lg bg-gray-900 px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500"
           />
 
-          {/* Geschlecht Auswahl */}
-          <div className="flex justify-center gap-4 text-sm md:text-base">
-            <label className="flex items-center gap-2 cursor-pointer hover:text-indigo-400 transition">
+          <div className="flex justify-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="radio"
                 value="m"
@@ -100,7 +79,7 @@ export default function HomePage() {
               />
               Männlich
             </label>
-            <label className="flex items-center gap-2 cursor-pointer hover:text-indigo-400 transition">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="radio"
                 value="w"
@@ -110,7 +89,7 @@ export default function HomePage() {
               />
               Weiblich
             </label>
-            <label className="flex items-center gap-2 cursor-pointer hover:text-indigo-400 transition">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="radio"
                 value="d"
@@ -122,15 +101,13 @@ export default function HomePage() {
             </label>
           </div>
 
-          {/* Fehlermeldung */}
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-red-400 text-sm">{error}</p>} {/* 🔹 Erweiterung */}
 
-          {/* Button */}
           <button
             type="submit"
-            className="w-full rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-3 font-semibold text-white shadow-lg transition transform hover:scale-105"
+            className="w-full rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-3 font-semibold text-white transition"
           >
-            🚀 Jetzt chatten
+            Jetzt chatten
           </button>
         </form>
       </section>
