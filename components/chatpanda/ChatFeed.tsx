@@ -32,18 +32,14 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
       if (blockedUsers.includes(msg.username)) return;
 
       if (msg.isLocalFail) {
-        setMessages((prev) => [...prev, createSystemMessage("🚫 Deine Nachricht konnte nicht zugestellt werden.")]);
+        setMessages((prev) => [
+          ...prev,
+          createSystemMessage("🚫 Deine Nachricht konnte nicht zugestellt werden."),
+        ]);
         return;
       }
 
-	// Falls eine Systemnachricht direkt vom Server kommt
-	if ("system" in msg && (msg as { system: Message }).system) {
-	  const sys = (msg as { system: Message }).system;
-	  setMessages((prev) => [...prev, sys]);
-	  return;
-	}
-
-
+      // Normale Nachrichten
       setMessages((prev) => [...prev, msg]);
     };
     window.addEventListener("local-message", handler);

@@ -2,7 +2,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Rnd } from "react-rnd";
 import { supabase } from "@/lib/supabase/browser";
-import { createSystemMessage } from "@/lib/systemMessage";
 
 type PrivateChatWindowProps = {
   user: string;
@@ -98,7 +97,6 @@ export default function PrivateChatWindow({
     setInput("");
 
     try {
-      // ✅ Supabase Session holen → Access Token
       const sessionRes = await supabase.auth.getSession();
       const accessToken = sessionRes.data?.session?.access_token;
 
@@ -123,22 +121,18 @@ export default function PrivateChatWindow({
         if (res.status === 429 && data.retry_after) {
           setCooldownUntil(Date.now() + data.retry_after * 1000);
         } else if (res.status === 403 || data.system) {
-        if (data.system) {
-		  setMessages((prev) => [
-			...prev,
-			{
-			  from: data.system.username,
-			  text: data.system.content,
-			  type: "system",
-			},
-		  ]);
-		} else {
-		  setMessages((prev) => [
-			...prev,
-			{ from: "System", text: data.error || "🚫 Nachricht konnte nicht zugestellt werden.", type: "system" },
-		  ]);
-		}
-
+          // ✅ Systemnachricht anzeigen
+          if (data.system) {
+            setMessages((prev) => [
+              ...prev,
+              { from: data.system.username, text: data.system.content, type: "system" },
+            ]);
+          } else {
+            setMessages((prev) => [
+              ...prev,
+              { from: "System", text: data.error || "🚫 Nachricht konnte nicht zugestellt werden.", type: "system" },
+            ]);
+          }
         } else {
           console.error("❌ Fehler:", data.error || res.statusText);
         }
@@ -148,7 +142,10 @@ export default function PrivateChatWindow({
       // Erfolgreich → Realtime übernimmt
     } catch (err) {
       console.error("🔥 Netzwerkfehler:", err);
-      setMessages((prev) => [...prev, createSystemMessage("Netzwerkfehler beim Senden.")]);
+      setMessages((prev) => [
+        ...prev,
+        { from: "System", text: "Netzwerkfehler beim Senden.", type: "system" },
+      ]);
     }
   }
 
