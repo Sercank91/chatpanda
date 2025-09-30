@@ -36,10 +36,13 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
         return;
       }
 
-      if ((msg as any).system) {
-        setMessages((prev) => [...prev, (msg as any).system]);
-        return;
-      }
+	// Falls eine Systemnachricht direkt vom Server kommt
+	if ("system" in msg && (msg as { system: Message }).system) {
+	  const sys = (msg as { system: Message }).system;
+	  setMessages((prev) => [...prev, sys]);
+	  return;
+	}
+
 
       setMessages((prev) => [...prev, msg]);
     };
