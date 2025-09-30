@@ -110,13 +110,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ---- Nachricht speichern ----
-    const { error } = await supabaseAdmin.from("private_messages").insert({
-      from_nickname: fromNickname,
-      from_id: fromIdVerified,
-      to_nickname: to,
-      message,
-    });
+		// ---- Gender bestimmen ----
+		const gender = (body.gender as "m" | "w" | "d" | "u") || "u";
+
+		// ---- Nachricht speichern ----
+		const { error } = await supabaseAdmin.from("private_messages").insert({
+		  from_nickname: fromNickname,
+		  from_id: fromIdVerified,
+		  to_nickname: to,
+		  message,
+		  gender, // <-- NEU
+		});
+
 
     if (error) {
       console.error("❌ Supabase Insert Error:", error);
