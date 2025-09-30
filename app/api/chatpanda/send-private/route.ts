@@ -1,4 +1,3 @@
-// app/api/chatpanda/send-private/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { redis } from "@/lib/redis";
@@ -47,20 +46,24 @@ export async function POST(req: NextRequest) {
       fromIdVerified = `guest:${fromNickname}`;
     }
 
-    // --- Blockierung prüfen ---
-    const blockedByReceiver = (await redis.exists(`block:${to}:${fromIdVerified}`)) === 1;
-    const blockedBySender = (await redis.exists(`block:${fromIdVerified}:${to}`)) === 1;
+    // --- Blockierung prüfen (IP-basiert, 1h) ---
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const keyBlockedByReceiver = `block:${to}:${fromIdVerified}:ip:${ip}`;
+    const keyBlockedBySender = `block:${fromIdVerified}:${to}:ip:${ip}`;
+
+    const blockedByReceiver = (await redis.exists(keyBlockedByReceiver)) === 1;
+    const blockedBySender = (await redis.exists(keyBlockedBySender)) === 1;
 
     if (blockedByReceiver) {
       return NextResponse.json(
-        { error: `${to} hat dich blockiert.`, system: true },
+        { error: `🚫 ${to} hat dich blockiert. Nachricht nicht zugestellt.`, system: true },
         { status: 403 }
       );
     }
 
     if (blockedBySender) {
       return NextResponse.json(
-        { error: `Du hast ${to} blockiert. Bitte Blockierung aufheben.`, system: true },
+        { error: `🚫 Du hast ${to} blockiert. Bitte Blockierung aufheben.`, system: true },
         { status: 403 }
       );
     }

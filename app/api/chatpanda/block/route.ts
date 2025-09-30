@@ -13,7 +13,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Du kannst dich nicht selbst blockieren." }, { status: 400 });
     }
 
-    const key = `block:${body.blocker}:${body.blocked}`;
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const key = `block:${body.blocker}:${body.blocked}:ip:${ip}`;
     await redis.set(key, "1", "EX", 3600); // ⏳ Blockierung 1h gültig
 
     return NextResponse.json({ success: true, blocked: body.blocked, expires_in: 3600 });

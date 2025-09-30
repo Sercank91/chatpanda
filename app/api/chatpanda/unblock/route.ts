@@ -9,7 +9,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
     }
 
-    const key = `block:${body.blocker}:${body.blocked}`;
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const key = `block:${body.blocker}:${body.blocked}:ip:${ip}`;
     await redis.del(key);
 
     return NextResponse.json({ success: true, unblocked: body.blocked });

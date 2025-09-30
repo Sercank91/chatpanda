@@ -89,12 +89,8 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
       {visibleMessages.map((m) => {
         if (m.type === "system" || m.username === "System") {
           return (
-            <div key={m.id} className="rounded-md bg-gray-900/70 p-3">
-              <div className="text-xs opacity-70">
-                {new Date(m.created_at).toLocaleTimeString()} •{" "}
-                <span className="font-semibold text-yellow-400">{m.username}</span>
-              </div>
-              <div className="text-yellow-300 italic">{m.content}</div>
+            <div key={m.id} className="p-2 rounded bg-gray-900/70 text-yellow-300 italic">
+              {m.content}
             </div>
           );
         }

@@ -1,4 +1,3 @@
-// components/chatpanda/PrivateChatWindow.tsx
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { Rnd } from "react-rnd";
@@ -99,31 +98,6 @@ export default function PrivateChatWindow({
     setInput("");
 
     try {
-      // Vorab-Check ob blockiert (UX)
-      const check1 = await fetch(
-        `/api/chatpanda/check-block?blocker=${encodeURIComponent(user)}&blocked=${encodeURIComponent(myNickname)}`
-      );
-      const checkData1 = await check1.json().catch(() => ({}));
-      if (checkData1.blocked) {
-        setMessages((prev) => [
-          ...prev,
-          { from: "System", text: `🚫 ${user} hat dich blockiert. Nachricht nicht zugestellt.`, type: "system" },
-        ]);
-        return;
-      }
-
-      const check2 = await fetch(
-        `/api/chatpanda/check-block?blocker=${encodeURIComponent(myNickname)}&blocked=${encodeURIComponent(user)}`
-      );
-      const checkData2 = await check2.json().catch(() => ({}));
-      if (checkData2.blocked) {
-        setMessages((prev) => [
-          ...prev,
-          { from: "System", text: `🚫 Du hast ${user} blockiert. Bitte Blockierung aufheben, um Nachrichten zu senden.`, type: "system" },
-        ]);
-        return;
-      }
-
       // ✅ Supabase Session holen → Access Token
       const sessionRes = await supabase.auth.getSession();
       const accessToken = sessionRes.data?.session?.access_token;
@@ -151,6 +125,7 @@ export default function PrivateChatWindow({
         if (res.status === 429 && data.retry_after) {
           setCooldownUntil(Date.now() + data.retry_after * 1000);
         } else if (res.status === 403 || data.system) {
+          // 🚫 Systemnachricht anzeigen
           setMessages((prev) => [
             ...prev,
             {
@@ -200,29 +175,28 @@ export default function PrivateChatWindow({
         </div>
 
         {/* Nachrichtenbereich */}
-		<div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
-		  {messages.length === 0 && <p className="text-gray-400">Noch keine Nachrichten</p>}
-		  {messages.map((m, i) => (
-			<div
-			  key={i}
-			  className={`p-2 rounded text-left ${
-				m.type === "system"
-				  ? "bg-gray-900/70 text-yellow-300 italic"
-				  : "bg-gray-800"
-			  }`}
-			>
-			  {m.type === "system" ? (
-				<span>{m.text}</span>
-			  ) : (
-				<>
-				  <span className="font-semibold">{m.from}:</span> {m.text}
-				</>
-			  )}
-			</div>
-		  ))}
-		  <div ref={messagesEndRef} />
-		</div>
-
+        <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
+          {messages.length === 0 && <p className="text-gray-400">Noch keine Nachrichten</p>}
+          {messages.map((m, i) => (
+            <div
+              key={i}
+              className={`p-2 rounded text-left ${
+                m.type === "system"
+                  ? "bg-gray-900/70 text-yellow-300 italic"
+                  : "bg-gray-800"
+              }`}
+            >
+              {m.type === "system" ? (
+                <span>{m.text}</span>
+              ) : (
+                <>
+                  <span className="font-semibold">{m.from}:</span> {m.text}
+                </>
+              )}
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
 
         {/* Eingabefeld */}
         <div className="border-t border-gray-700 p-2 flex items-center gap-2">

@@ -11,7 +11,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Ungültige Anfrage" }, { status: 400 });
   }
 
-  const key = `block:${blocker}:${blocked}`;
+  const ip = req.headers.get("x-forwarded-for") || "unknown";
+  const key = `block:${blocker}:${blocked}:ip:${ip}`;
   const exists = await redis.exists(key);
 
   return NextResponse.json({ blocked: exists === 1 });
