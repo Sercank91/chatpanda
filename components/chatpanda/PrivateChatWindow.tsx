@@ -128,8 +128,8 @@ export default function PrivateChatWindow({
       const sessionRes = await supabase.auth.getSession();
       const accessToken = sessionRes.data?.session?.access_token;
 
-      let headers: Record<string, string> = { "Content-Type": "application/json" };
-      let body: Record<string, string> = { to: user, message: text };
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const body: Record<string, string> = { to: user, message: text };
 
       if (accessToken) {
         headers["Authorization"] = `Bearer ${accessToken}`;
