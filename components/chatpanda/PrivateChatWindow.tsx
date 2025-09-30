@@ -128,22 +128,21 @@ export default function PrivateChatWindow({
       const sessionRes = await supabase.auth.getSession();
       const accessToken = sessionRes.data?.session?.access_token;
 
-      if (!accessToken) {
-        setMessages((prev) => [
-          ...prev,
-          { from: "System", text: "Nicht angemeldet. Bitte einloggen.", type: "system" },
-        ]);
-        return;
+      let headers: Record<string, string> = { "Content-Type": "application/json" };
+      let body: Record<string, string> = { to: user, message: text };
+
+      if (accessToken) {
+        headers["Authorization"] = `Bearer ${accessToken}`;
+      } else {
+        // Gastmodus → Nickname mitschicken
+        body["from"] = myNickname;
       }
 
       // POST senden
       const res = await fetch("/api/chatpanda/send-private", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`, // ✅ Token mitsenden
-        },
-        body: JSON.stringify({ to: user, message: text }),
+        headers,
+        body: JSON.stringify(body),
       });
 
       const data = await res.json().catch(() => ({}));
