@@ -19,18 +19,40 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
         { event: "INSERT", schema: "public", table: "messages", filter: "room=eq.global" },
         (payload) => {
           const m = payload.new as Message;
+
           // blockierte User überspringen
           if (blockedUsers.includes(m.username)) return;
+
           setMessages((prev) => [...prev, m]);
         }
       )
       .subscribe();
 
-    // Lokale Events (nur Willkommensnachricht für eigenen Client)
+    // Lokale Events (nur Willkommensnachricht oder eigene Nachricht)
     const handler = (e: Event) => {
       const custom = e as CustomEvent<Message>;
-      if (blockedUsers.includes(custom.detail.username)) return;
-      setMessages((prev) => [...prev, custom.detail]);
+      const msg = custom.detail;
+
+      // Wenn die Nachricht von einem blockierten User kommt → ignorieren
+      if (blockedUsers.includes(msg.username)) return;
+
+      // Wenn die Nachricht von mir selbst kommt und blockierte User existieren,
+      // zeige stattdessen Systemhinweis
+      if (msg.isLocalFail) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            ...msg,
+            id: `fail-${Date.now()}`,
+            username: "System",
+            type: "system",
+            content: "🚫 Deine Nachricht konnte nicht zugestellt werden.",
+          },
+        ]);
+        return;
+      }
+
+      setMessages((prev) => [...prev, msg]);
     };
     window.addEventListener("local-message", handler);
 
@@ -51,7 +73,7 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
     }
   }, [messages]);
 
-  // gefilterte Nachrichten (falls initiale oder alte enthalten)
+  // gefilterte Nachrichten
   const visibleMessages = messages.filter((m) => !blockedUsers.includes(m.username));
 
   if (!visibleMessages.length) {
