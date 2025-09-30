@@ -119,6 +119,7 @@ export default function HomePage() {
             🚀 Jetzt chatten
           </button>
         </form>
+		coded by Sercan K.
       </section>
     </main>
   );
