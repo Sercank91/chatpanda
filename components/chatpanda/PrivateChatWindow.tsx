@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { Rnd } from "react-rnd";
 import { supabase } from "@/lib/supabase/browser";
 import { createPrivateSystemMessage } from "@/lib/systemMessage";
+import { Smile, AlertTriangle, Ban, Send } from "lucide-react";
 
 type PrivateChatWindowProps = {
   user: string;
@@ -24,6 +25,9 @@ export default function PrivateChatWindow({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [myNickname, setMyNickname] = useState("Ich");
+  const [showSmileyBox, setShowSmileyBox] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false); // 🔹 Verstoß melden Modal
+  const [showBlockModal, setShowBlockModal] = useState(false); // 🔹 Blockieren Modal
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const [cooldownUntil, setCooldownUntil] = useState<number>(0);
@@ -37,13 +41,12 @@ export default function PrivateChatWindow({
   }, []);
 
   // Initial Nachrichten
-useEffect(() => {
-  if (initialMessages.length > 0) {
-    setMessages(initialMessages.map((m) => ({ ...m, type: "user" })));
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []); // 👈 leeres Dependency-Array
-
+  useEffect(() => {
+    if (initialMessages.length > 0) {
+      setMessages(initialMessages.map((m) => ({ ...m, type: "user" })));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Realtime Subscription
   useEffect(() => {
@@ -135,8 +138,6 @@ useEffect(() => {
         }
         return;
       }
-
-      // Erfolgreich → Realtime übernimmt
     } catch (err: unknown) {
       console.error("🔥 Netzwerkfehler:", err);
       setMessages((prev) => [
@@ -150,9 +151,14 @@ useEffect(() => {
   const cooldownActive = now < cooldownUntil;
   const cooldownSeconds = cooldownActive ? Math.ceil((cooldownUntil - now) / 1000) : 0;
 
+  function addSmiley(smiley: string) {
+    setInput((prev) => prev + " " + smiley);
+    setShowSmileyBox(false);
+  }
+
   return (
     <Rnd
-      default={{ x: 100, y: 100, width: 300, height: 350 }}
+      default={{ x: 100, y: 100, width: 500, height: 350 }}
       bounds="window"
       dragHandleClassName="header"
       cancel=".no-drag"
@@ -171,7 +177,7 @@ useEffect(() => {
         </div>
 
         {/* Nachrichtenbereich */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
+        <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm relative">
           {messages.length === 0 && <p className="text-gray-400">Noch keine Nachrichten</p>}
           {messages.map((m, i) => (
             <div
@@ -192,9 +198,24 @@ useEffect(() => {
             </div>
           ))}
           <div ref={messagesEndRef} />
+
+          {/* Smiley Box */}
+          {showSmileyBox && (
+            <div className="absolute bottom-14 left-2 bg-gray-800 border border-gray-600 rounded-lg p-2 grid grid-cols-6 gap-2 text-lg">
+              {["😀", "😂", "😍", "😎", "😢", "😡", "👍", "👎", "❤️", "🔥"].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => addSmiley(s)}
+                  className="hover:bg-gray-700 rounded"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Eingabefeld */}
+        {/* Eingabefeld + Buttons */}
         <div className="border-t border-gray-700 p-2 flex items-center gap-2">
           <input
             type="text"
@@ -210,19 +231,107 @@ useEffect(() => {
             disabled={cooldownActive}
             className="flex-1 bg-gray-800 px-2 py-1 rounded text-sm focus:outline-none disabled:opacity-50"
           />
+
+          {/* Smiley Button */}
+          <button
+            onClick={() => setShowSmileyBox((p) => !p)}
+            className="no-drag p-2 rounded hover:bg-gray-700"
+          >
+            <Smile size={18} className="text-yellow-400" />
+          </button>
+
+          {/* Verstoß melden */}
+          <button
+            onClick={() => setShowReportModal(true)}
+            className="no-drag p-2 rounded hover:bg-gray-700"
+          >
+            <AlertTriangle size={18} className="text-red-400" />
+          </button>
+
+          {/* Blockieren */}
+          <button
+            onClick={() => setShowBlockModal(true)}
+            className="no-drag p-2 rounded hover:bg-gray-700"
+          >
+            <Ban size={18} className="text-red-500" />
+          </button>
+
+          {/* Senden */}
           <button
             onClick={handleSend}
-            className={`ml-2 px-3 py-1 rounded text-sm ${
+            className={`ml-2 px-3 py-1 rounded text-sm flex items-center gap-1 ${
               cooldownActive
                 ? "bg-gray-700 text-gray-400 cursor-not-allowed"
                 : "bg-blue-600 hover:bg-blue-700"
             } no-drag`}
             disabled={cooldownActive}
           >
-            {cooldownActive ? `⏳ ${cooldownSeconds}s` : "➤"}
+            <Send size={16} />
           </button>
         </div>
       </div>
+
+      {/* 🔹 Report Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-gray-900 text-white p-6 rounded-lg shadow-lg w-96 space-y-4">
+            <h2 className="text-xl font-bold flex items-center gap-2 text-red-400">
+              <AlertTriangle size={20} /> Verstoß melden
+            </h2>
+            <p className="text-sm text-gray-300">
+              Meldest du {user} wegen Spam, Belästigung oder Regelverstoß?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={() => {
+                  setShowReportModal(false);
+                  alert(`🚨 Verstoß von ${user} gemeldet!`);
+                }}
+                className="px-3 py-1 rounded bg-red-600 hover:bg-red-500"
+              >
+                Melden
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔹 Block Modal */}
+      {showBlockModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-gray-900 text-white p-6 rounded-lg shadow-lg w-96 space-y-4">
+            <h2 className="text-xl font-bold flex items-center gap-2 text-red-500">
+              <Ban size={20} /> Benutzer blockieren
+            </h2>
+            <p className="text-sm text-gray-300">
+              Möchtest du {user} blockieren? Er kann dir dann keine Nachrichten mehr schicken.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowBlockModal(false)}
+                className="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={() => {
+                  setShowBlockModal(false);
+                  alert(`🚫 ${user} wurde blockiert!`);
+                }}
+                className="px-3 py-1 rounded bg-red-600 hover:bg-red-500"
+              >
+                Blockieren
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Rnd>
   );
 }
