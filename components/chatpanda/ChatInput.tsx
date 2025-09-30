@@ -68,6 +68,20 @@ export default function ChatInput({ room }: { room: string }) {
         if (data.error?.includes("Zu viele Nachrichten")) {
           setCooldownUntil(now + 30000);
           setError("Zu viele Nachrichten – bitte kurz warten.");
+        } else if (data.error?.includes("blockiert")) {
+          // 🚫 Systemfeedback für blockierte Nachricht
+          window.dispatchEvent(
+            new CustomEvent("local-message", {
+              detail: {
+                id: `fail-${Date.now()}`,
+                username: nickname || "Ich",
+                content: message.trim(),
+                created_at: new Date().toISOString(),
+                isLocalFail: true, // wichtig für ChatFeed
+              },
+            })
+          );
+          setError("Deine Nachricht wurde blockiert.");
         } else {
           setError(data.error || "Fehler beim Senden.");
         }

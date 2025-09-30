@@ -8,4 +8,5 @@ export type Message = {
   gender: string;
   type?: "system" | "user";
   created_at: string;
+  isLocalFail?: boolean;
 };

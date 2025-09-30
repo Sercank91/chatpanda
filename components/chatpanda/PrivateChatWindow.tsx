@@ -128,7 +128,7 @@ export default function PrivateChatWindow({
             ...prev,
             {
               from: "System",
-              text: data.error || "Dieser Nutzer hat dich blockiert.",
+              text: data.error || "🚫 Nachricht konnte nicht zugestellt werden.",
               type: "system",
             },
           ]);
@@ -137,8 +137,18 @@ export default function PrivateChatWindow({
         }
         return;
       }
+
+      // ✅ Nachricht erfolgreich gesendet → optional lokal anzeigen
+      setMessages((prev) => [
+        ...prev,
+        { from: myNickname, text, type: "user" },
+      ]);
     } catch (err) {
       console.error("🔥 Netzwerkfehler:", err);
+      setMessages((prev) => [
+        ...prev,
+        { from: "System", text: "Netzwerkfehler beim Senden.", type: "system" },
+      ]);
     }
   }
 
