@@ -10,6 +10,23 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
   const [messages, setMessages] = useState<Message[]>(initial);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
+  // 🔹 Helper für Systemmeldungen
+  function addSystemMessage(content: string) {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `sys-${Date.now()}`,
+        room: "global",
+        user_id: "system",
+        username: "System",
+        content,
+        gender: "u",
+        type: "system",
+        created_at: new Date().toISOString(),
+      },
+    ]);
+  }
+
   useEffect(() => {
     // DB-Events (für alle)
     const channel = supabase
@@ -36,19 +53,9 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
       // Wenn die Nachricht von einem blockierten User kommt → ignorieren
       if (blockedUsers.includes(msg.username)) return;
 
-      // Wenn die Nachricht von mir selbst kommt und blockierte User existieren,
-      // zeige stattdessen Systemhinweis
+      // Wenn die Nachricht von mir selbst kommt und fehlgeschlagen ist → Systemhinweis
       if (msg.isLocalFail) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            ...msg,
-            id: `fail-${Date.now()}`,
-            username: "System",
-            type: "system",
-            content: "🚫 Deine Nachricht konnte nicht zugestellt werden.",
-          },
-        ]);
+        addSystemMessage("🚫 Deine Nachricht konnte nicht zugestellt werden.");
         return;
       }
 

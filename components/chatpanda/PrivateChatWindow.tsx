@@ -27,6 +27,14 @@ export default function PrivateChatWindow({
 
   const [cooldownUntil, setCooldownUntil] = useState<number>(0);
 
+  // 🔹 Helper zum Hinzufügen von Systemnachrichten
+  function addSystemMessage(text: string) {
+    setMessages((prev) => [
+      ...prev,
+      { from: "System", text, type: "system" },
+    ]);
+  }
+
   // Nickname laden
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -125,17 +133,10 @@ export default function PrivateChatWindow({
         if (res.status === 429 && data.retry_after) {
           setCooldownUntil(Date.now() + data.retry_after * 1000);
         } else if (res.status === 403 || data.system) {
-          // 🚫 Systemnachricht anzeigen
-          setMessages((prev) => [
-            ...prev,
-            {
-              from: "System",
-              text: data.error || "🚫 Nachricht konnte nicht zugestellt werden.",
-              type: "system",
-            },
-          ]);
+          addSystemMessage(data.error || "🚫 Nachricht konnte nicht zugestellt werden.");
         } else {
           console.error("❌ Fehler:", data.error || res.statusText);
+          addSystemMessage("🚫 Nachricht konnte nicht gesendet werden.");
         }
         return;
       }
@@ -143,10 +144,7 @@ export default function PrivateChatWindow({
       // Erfolgreich → Realtime übernimmt
     } catch (err) {
       console.error("🔥 Netzwerkfehler:", err);
-      setMessages((prev) => [
-        ...prev,
-        { from: "System", text: "Netzwerkfehler beim Senden.", type: "system" },
-      ]);
+      addSystemMessage("Netzwerkfehler beim Senden.");
     }
   }
 
