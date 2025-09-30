@@ -1,3 +1,4 @@
+// components/chatpanda/PrivateChatWindow.tsx
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { Rnd } from "react-rnd";
@@ -36,7 +37,7 @@ export default function PrivateChatWindow({
     }
   }, []);
 
-  // Initial nur einmal Nachrichten setzen
+  // Initial Nachrichten
   useEffect(() => {
     if (initialMessages.length > 0) {
       setMessages(initialMessages.map((m) => ({ ...m, type: "user" })));
@@ -44,7 +45,7 @@ export default function PrivateChatWindow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Realtime Subscription mit Block-Prüfung
+  // Realtime Subscription
   useEffect(() => {
     if (!myNickname || !user) return;
 
@@ -60,12 +61,11 @@ export default function PrivateChatWindow({
             message: string;
           };
 
-          // ⬅️ Block-Prüfung (lokal)
           const blockedRaw = localStorage.getItem("chatpanda_blocked");
           const blocked: string[] = blockedRaw ? JSON.parse(blockedRaw) : [];
 
           if (blocked.includes(m.from_nickname) || blocked.includes(m.to_nickname)) {
-            return; // blockierte Nachricht ignorieren
+            return;
           }
 
           if (
@@ -86,14 +86,14 @@ export default function PrivateChatWindow({
     };
   }, [myNickname, user]);
 
-  // Automatisches Scrollen
+  // Scroll automatisch
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
-  // Countdown re-rendern
+  // Countdown re-render
   useEffect(() => {
     let id: number | undefined;
     if (cooldownUntil > Date.now()) {
@@ -111,6 +111,32 @@ export default function PrivateChatWindow({
     setInput("");
 
     try {
+      // Vorab-Check ob blockiert (UX)
+      const check1 = await fetch(
+        `/api/chatpanda/check-block?blocker=${encodeURIComponent(user)}&blocked=${encodeURIComponent(myNickname)}`
+      );
+      const checkData1 = await check1.json().catch(() => ({}));
+      if (checkData1.blocked) {
+        setMessages((prev) => [
+          ...prev,
+          { from: "System", text: `🚫 ${user} hat dich blockiert. Nachricht nicht zugestellt.`, type: "system" },
+        ]);
+        return;
+      }
+
+      const check2 = await fetch(
+        `/api/chatpanda/check-block?blocker=${encodeURIComponent(myNickname)}&blocked=${encodeURIComponent(user)}`
+      );
+      const checkData2 = await check2.json().catch(() => ({}));
+      if (checkData2.blocked) {
+        setMessages((prev) => [
+          ...prev,
+          { from: "System", text: `🚫 Du hast ${user} blockiert. Bitte Blockierung aufheben.`, type: "system" },
+        ]);
+        return;
+      }
+
+      // POST senden
       const res = await fetch("/api/chatpanda/send-private", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -123,7 +149,6 @@ export default function PrivateChatWindow({
         if (res.status === 429 && data.retry_after) {
           setCooldownUntil(Date.now() + data.retry_after * 1000);
         } else if (res.status === 403 || data.system) {
-          // ⬅️ Systemmeldung automatisch einfügen
           setMessages((prev) => [
             ...prev,
             {
@@ -138,7 +163,7 @@ export default function PrivateChatWindow({
         return;
       }
 
-      // ✅ NICHT mehr lokal hinzufügen → Supabase Realtime übernimmt!
+      // Erfolgreich → Realtime übernimmt
     } catch (err) {
       console.error("🔥 Netzwerkfehler:", err);
       setMessages((prev) => [

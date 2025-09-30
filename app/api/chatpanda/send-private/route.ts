@@ -1,28 +1,56 @@
+// app/api/chatpanda/send-private/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { redis } from "@/lib/redis";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => null);
+    // --- Auth: Token aus Authorization header ziehen ---
+    const authHeader = req.headers.get("authorization") || "";
+    const tokenMatch = authHeader.match(/^Bearer (.+)$/);
+    if (!tokenMatch) {
+      return NextResponse.json(
+        { error: "Nicht authentifiziert (kein Token).", system: true },
+        { status: 401 }
+      );
+    }
+    const accessToken = tokenMatch[1];
 
-    if (!body?.from || !body?.to || !body?.message) {
+    // Supabase-admin prüft Token und liefert den User
+    const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(accessToken);
+    if (authError || !authData?.user) {
+      console.error("Auth error:", authError);
+      return NextResponse.json(
+        { error: "Ungültiges Auth-Token.", system: true },
+        { status: 401 }
+      );
+    }
+    const authUser = authData.user;
+    const fromIdVerified = authUser.id; // server-verifizierte sender-id
+    const fromNickname = (authUser.user_metadata as any)?.nickname || authUser.email || "Unbekannt";
+
+    // --- Body lesen ---
+    const body = await req.json().catch(() => null);
+    if (!body?.to || !body?.message) {
       return NextResponse.json(
         { error: "Ungültige Anfrage – Felder fehlen.", system: true },
         { status: 400 }
       );
     }
+    const to = String(body.to).trim(); // erwartet: recipient nickname OR id depending on your system
+    const message = String(body.message).trim();
 
-    const from = body.from.trim();
-    const to = body.to.trim();
-    const message = body.message.trim();
+    // (Optional) Wenn dein system user-ids verwendet, erwarte body.toId und prüfe existenz.
+    // Für minimale Änderung nehmen wir weiterhin 'to' als nickname, aber die Absender-ID ist verifiziert.
 
-    // --- Blockierung prüfen ---
-    const blockedByReceiver = await redis.get(`block:${to}:${from}`); // Empfänger blockiert Sender
-    const blockedBySender = await redis.get(`block:${from}:${to}`);   // Sender blockiert Empfänger
+    // --- Blockierung prüfen (mit redis.exists für Klarheit) ---
+    // Block key convention: block:<blocker>:<blocked>
+    // blockedByReceiver = recipient has blocked sender
+    const blockedByReceiver = (await redis.exists(`block:${to}:${fromIdVerified}`)) === 1;
+    const blockedBySender = (await redis.exists(`block:${fromIdVerified}:${to}`)) === 1;
 
     if (blockedByReceiver) {
-      // Empfänger hat Sender blockiert → Nachricht NICHT speichern
+      console.info("PrivMsg blocked (recipient blocked sender)", { fromId: fromIdVerified, fromNickname, to });
       return NextResponse.json(
         { error: `${to} hat dich blockiert.`, system: true },
         { status: 403 }
@@ -30,16 +58,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (blockedBySender) {
-      // Sender hat Empfänger blockiert → Nachricht NICHT speichern
+      console.info("PrivMsg blocked (sender blocked recipient)", { fromId: fromIdVerified, fromNickname, to });
       return NextResponse.json(
-        { error: `Du hast ${to} blockiert.`, system: true },
+        { error: `Du hast ${to} blockiert. Bitte Blockierung aufheben, um Nachrichten zu senden.`, system: true },
         { status: 403 }
       );
     }
 
     // ---- Flood-Schutz ----
-    const keyCount = `privmsg:${from}:count`;
-    const keyStrikes = `privmsg:${from}:strikes`;
+    const keyCount = `privmsg:${fromIdVerified}:count`;
+    const keyStrikes = `privmsg:${fromIdVerified}:strikes`;
 
     const windowSec = 15;
     const maxMsgs = 5;
@@ -60,9 +88,10 @@ export async function POST(req: NextRequest) {
       else if (strikes === 3) retry_after = 60;
       else if (strikes >= 4) retry_after = 300;
 
-      const banKey = `privmsg:${from}:ban`;
+      const banKey = `privmsg:${fromIdVerified}:ban`;
       await redis.set(banKey, "1", "EX", retry_after);
 
+      console.info("PrivMsg rate-limited", { fromId: fromIdVerified, to, strikes });
       return NextResponse.json(
         { error: "Zu viele Nachrichten – bitte kurz warten.", retry_after, system: true },
         { status: 429 }
@@ -70,7 +99,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Prüfen ob aktive Sperre existiert
-    const banKey = `privmsg:${from}:ban`;
+    const banKey = `privmsg:${fromIdVerified}:ban`;
     const ttl = await redis.ttl(banKey);
     if (ttl > 0) {
       return NextResponse.json(
@@ -80,8 +109,10 @@ export async function POST(req: NextRequest) {
     }
 
     // ---- Nachricht in DB speichern (nur wenn keine Blockierung) ----
+    // Wir speichern zusätzlich die sender-id und sender-nickname für Integrität.
     const { error } = await supabaseAdmin.from("private_messages").insert({
-      from_nickname: from,
+      from_nickname: fromNickname,
+      from_id: fromIdVerified,
       to_nickname: to,
       message,
     });
