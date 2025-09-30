@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
     const blockedBySender = await redis.get(`block:${from}:${to}`);     // Sender blockiert Empfänger
 
     if (blockedByReceiver) {
+      // Empfänger hat Sender blockiert → Nachricht NICHT speichern
       return NextResponse.json(
         { error: `${to} hat dich blockiert.` },
         { status: 403 }
@@ -30,13 +31,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (blockedBySender) {
+      // Sender hat Empfänger blockiert → Nachricht NICHT speichern
       return NextResponse.json(
         { error: `Du hast ${to} blockiert.` },
         { status: 403 }
       );
     }
 
-    // ---- Flood-Schutz Keys ----
+    // ---- Flood-Schutz ----
     const keyCount = `privmsg:${from}:count`;
     const keyStrikes = `privmsg:${from}:strikes`;
 
@@ -78,7 +80,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ---- In DB speichern (nur wenn keine Blockierung) ----
+    // ---- Nachricht in DB speichern (nur wenn keine Blockierung) ----
     const { error } = await supabaseAdmin.from("private_messages").insert({
       from_nickname: from,
       to_nickname: to,
