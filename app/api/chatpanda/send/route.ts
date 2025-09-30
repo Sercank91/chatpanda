@@ -21,9 +21,28 @@ export async function POST(req: NextRequest) {
     }
 
     // Standardwerte falls nickname oder gender fehlen
-    const nickname = body.nickname || "Gast";
+    const nickname = body.nickname?.trim() || "Gast";
     const gender = body.gender || "u"; // u = unknown/unset
     const room = body.room || "global";
+
+    // --- Block-Check ---
+    // Prüfen ob User global blockiert ist
+    const blockedByOthers = await redis.get(`block:*:${nickname}`);
+    const iBlockedOthers = await redis.get(`block:${nickname}:*`);
+
+    if (blockedByOthers) {
+      return NextResponse.json(
+        { error: "Du wurdest blockiert und kannst nicht schreiben.", system: true },
+        { status: 403 }
+      );
+    }
+
+    if (iBlockedOthers) {
+      return NextResponse.json(
+        { error: "Du hast jemanden blockiert – bitte Block aufheben um zu schreiben.", system: true },
+        { status: 403 }
+      );
+    }
 
     // Flood-Check mit Redis
     const key = `chat:${nickname}`;

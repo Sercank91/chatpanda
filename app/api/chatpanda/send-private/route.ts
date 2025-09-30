@@ -17,12 +17,23 @@ export async function POST(req: NextRequest) {
     const to = body.to.trim();
     const message = body.message.trim();
 
-    // --- Blockierung zuerst prüfen ---
+    // --- Blockierung prüfen ---
+    // 1. Empfänger hat Sender blockiert
     const blockKey = `block:${to}:${from}`;
     const isBlocked = await redis.get(blockKey);
     if (isBlocked) {
       return NextResponse.json(
         { error: "Dieser Nutzer hat dich blockiert.", system: true },
+        { status: 403 }
+      );
+    }
+
+    // 2. Sender hat Empfänger blockiert
+    const iBlockedKey = `block:${from}:${to}`;
+    const iBlocked = await redis.get(iBlockedKey);
+    if (iBlocked) {
+      return NextResponse.json(
+        { error: "Du hast diesen Nutzer blockiert.", system: true },
         { status: 403 }
       );
     }
