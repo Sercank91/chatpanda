@@ -1,15 +1,15 @@
-import type { SystemMessage, PrivateMessage } from "@/types/message";
+import type { SystemMessage } from "@/types/message";
 
-// Für Private Chats
-export function createPrivateSystemMessage(text: string): PrivateMessage {
+// Private Chat Systemnachricht
+export function createPrivateSystemMessage(text: string) {
   return {
     from: "System",
     text,
-    type: "system",
+    type: "system" as const,
   };
 }
 
-// Für Global Chat
+// Global Chat Systemnachricht
 export function createGlobalSystemMessage(content: string): SystemMessage {
   return {
     id: `sys-${Date.now()}`,
@@ -17,22 +17,13 @@ export function createGlobalSystemMessage(content: string): SystemMessage {
     content,
     type: "system",
     created_at: new Date().toISOString(),
-    room: "global",
+    room: "global",   // ⬅️ Pflichtfelder gefüllt
     user_id: "system",
     gender: "u",
   };
 }
 
-// ✅ Generische Variante für API-Routen (gleich wie Global)
+// Generische Variante für API-Routen
 export function createSystemMessage(content: string): SystemMessage {
-  return {
-    id: `sys-${Date.now()}`,
-    username: "System",
-    content,
-    type: "system",
-    created_at: new Date().toISOString(),
-    room: "global",
-    user_id: "system",
-    gender: "u",
-  };
+  return createGlobalSystemMessage(content); // ⬅️ Wiederverwendung
 }
