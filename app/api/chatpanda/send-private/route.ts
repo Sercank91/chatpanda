@@ -24,14 +24,14 @@ export async function POST(req: NextRequest) {
 
     if (blockedByReceiver) {
       return NextResponse.json(
-        { error: "🚫 Dieser Nutzer hat dich blockiert.", system: true },
+        { error: `${to} hat dich blockiert.`, system: true },
         { status: 403 }
       );
     }
 
     if (blockedBySender) {
       return NextResponse.json(
-        { error: "🚫 Du hast diesen Nutzer blockiert.", system: true },
+        { error: `Du hast ${to} blockiert. Bitte Blockierung aufheben, um Nachrichten zu senden.`, system: true },
         { status: 403 }
       );
     }
