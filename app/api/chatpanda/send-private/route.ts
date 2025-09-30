@@ -24,14 +24,14 @@ export async function POST(req: NextRequest) {
 
     if (blockedByReceiver) {
       return NextResponse.json(
-        { error: `${to} hat dich blockiert.`, system: true },
+        { error: `${to} hat dich blockiert.` },
         { status: 403 }
       );
     }
 
     if (blockedBySender) {
       return NextResponse.json(
-        { error: `Du hast ${to} blockiert. Bitte Blockierung aufheben, um Nachrichten zu senden.`, system: true },
+        { error: `Du hast ${to} blockiert.` },
         { status: 403 }
       );
     }
@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
     const keyCount = `privmsg:${from}:count`;
     const keyStrikes = `privmsg:${from}:strikes`;
 
-    const windowSec = 15; // Zählfenster 15s
-    const maxMsgs = 5;    // max. 5 Nachrichten pro Fenster
+    const windowSec = 15;
+    const maxMsgs = 5;
 
     const count = await redis.incr(keyCount);
     if (count === 1) {
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     if (count > maxMsgs) {
       const strikes = await redis.incr(keyStrikes);
       if (strikes === 1) {
-        await redis.expire(keyStrikes, 3600); // 1h gültig
+        await redis.expire(keyStrikes, 3600);
       }
 
       let retry_after = 15;
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ---- In DB speichern ----
+    // ---- In DB speichern (nur wenn keine Blockierung) ----
     const { error } = await supabaseAdmin.from("private_messages").insert({
       from_nickname: from,
       to_nickname: to,
