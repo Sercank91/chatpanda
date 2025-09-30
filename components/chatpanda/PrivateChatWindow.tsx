@@ -123,14 +123,22 @@ export default function PrivateChatWindow({
         if (res.status === 429 && data.retry_after) {
           setCooldownUntil(Date.now() + data.retry_after * 1000);
         } else if (res.status === 403 || data.system) {
-          if (data.system) {
-            setMessages((prev) => [...prev, data.system]);
-          } else {
-            setMessages((prev) => [
-              ...prev,
-              createSystemMessage(data.error || "🚫 Nachricht konnte nicht zugestellt werden."),
-            ]);
-          }
+        if (data.system) {
+		  setMessages((prev) => [
+			...prev,
+			{
+			  from: data.system.username,
+			  text: data.system.content,
+			  type: "system",
+			},
+		  ]);
+		} else {
+		  setMessages((prev) => [
+			...prev,
+			{ from: "System", text: data.error || "🚫 Nachricht konnte nicht zugestellt werden.", type: "system" },
+		  ]);
+		}
+
         } else {
           console.error("❌ Fehler:", data.error || res.statusText);
         }
