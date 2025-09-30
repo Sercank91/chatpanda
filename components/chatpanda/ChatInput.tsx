@@ -88,7 +88,7 @@ export default function ChatInput({ room }: { room: string }) {
         return;
       }
 
-      // ✅ Erfolgreich
+      // ✅ Erfolgreich → keine lokale Nachricht anhängen (Realtime übernimmt)
       setMessage("");
       setLastSent(now);
       setHistory(newHistory);

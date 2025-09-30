@@ -1,3 +1,4 @@
+// app/api/chatpanda/send-private/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { redis } from "@/lib/redis";
@@ -18,22 +19,19 @@ export async function POST(req: NextRequest) {
     const message = body.message.trim();
 
     // --- Blockierung prüfen ---
-    // 1. Empfänger hat Sender blockiert
-    const blockKey = `block:${to}:${from}`;
-    const isBlocked = await redis.get(blockKey);
-    if (isBlocked) {
+    const blockedByReceiver = await redis.get(`block:${to}:${from}`);   // Empfänger blockiert Sender
+    const blockedBySender = await redis.get(`block:${from}:${to}`);     // Sender blockiert Empfänger
+
+    if (blockedByReceiver) {
       return NextResponse.json(
-        { error: "Dieser Nutzer hat dich blockiert.", system: true },
+        { error: "🚫 Dieser Nutzer hat dich blockiert.", system: true },
         { status: 403 }
       );
     }
 
-    // 2. Sender hat Empfänger blockiert
-    const iBlockedKey = `block:${from}:${to}`;
-    const iBlocked = await redis.get(iBlockedKey);
-    if (iBlocked) {
+    if (blockedBySender) {
       return NextResponse.json(
-        { error: "Du hast diesen Nutzer blockiert.", system: true },
+        { error: "🚫 Du hast diesen Nutzer blockiert.", system: true },
         { status: 403 }
       );
     }
@@ -43,7 +41,7 @@ export async function POST(req: NextRequest) {
     const keyStrikes = `privmsg:${from}:strikes`;
 
     const windowSec = 15; // Zählfenster 15s
-    const maxMsgs = 5; // max. 5 Nachrichten pro Fenster
+    const maxMsgs = 5;    // max. 5 Nachrichten pro Fenster
 
     const count = await redis.incr(keyCount);
     if (count === 1) {

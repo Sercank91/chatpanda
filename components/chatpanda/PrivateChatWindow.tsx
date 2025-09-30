@@ -138,11 +138,7 @@ export default function PrivateChatWindow({
         return;
       }
 
-      // ✅ Nachricht erfolgreich gesendet → optional lokal anzeigen
-      setMessages((prev) => [
-        ...prev,
-        { from: myNickname, text, type: "user" },
-      ]);
+      // ✅ NICHT mehr lokal hinzufügen → Supabase Realtime übernimmt!
     } catch (err) {
       console.error("🔥 Netzwerkfehler:", err);
       setMessages((prev) => [
