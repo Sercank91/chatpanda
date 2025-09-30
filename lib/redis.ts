@@ -2,11 +2,8 @@
 import Redis from "ioredis";
 
 declare global {
-  // ✅ sauberer: explizit als Property am globalThis definieren
-  // (keine eslint-disable mehr nötig)
-  // Damit TypeScript weiß: globalThis.__redis__ kann Redis oder undefined sein
-  // und bleibt zwischen Hot Reloads erhalten.
-  // eslint-disable-next-line no-unused-vars
+  // ✅ Typ für globalThis definieren (ohne eslint-disable)
+  // So weiß TypeScript, dass __redis__ existieren kann
   var __redis__: Redis | undefined;
 }
 

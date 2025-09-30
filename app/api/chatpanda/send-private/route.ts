@@ -3,6 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { redis } from "@/lib/redis";
 
+// ✅ Typ für user_metadata
+interface UserMetadata {
+  nickname?: string;
+  [key: string]: unknown;
+}
+
 export async function POST(req: NextRequest) {
   try {
     // --- Auth: Token aus Authorization header ziehen ---
@@ -27,7 +33,10 @@ export async function POST(req: NextRequest) {
     }
     const authUser = authData.user;
     const fromIdVerified = authUser.id; // server-verifizierte sender-id
-    const fromNickname = (authUser.user_metadata as any)?.nickname || authUser.email || "Unbekannt";
+
+    // ✅ Statt any → typisiertes Casting
+    const userMeta = authUser.user_metadata as UserMetadata;
+    const fromNickname = userMeta.nickname || authUser.email || "Unbekannt";
 
     // --- Body lesen ---
     const body = await req.json().catch(() => null);
@@ -37,15 +46,10 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const to = String(body.to).trim(); // erwartet: recipient nickname OR id depending on your system
+    const to = String(body.to).trim();
     const message = String(body.message).trim();
 
-    // (Optional) Wenn dein system user-ids verwendet, erwarte body.toId und prüfe existenz.
-    // Für minimale Änderung nehmen wir weiterhin 'to' als nickname, aber die Absender-ID ist verifiziert.
-
-    // --- Blockierung prüfen (mit redis.exists für Klarheit) ---
-    // Block key convention: block:<blocker>:<blocked>
-    // blockedByReceiver = recipient has blocked sender
+    // --- Blockierung prüfen ---
     const blockedByReceiver = (await redis.exists(`block:${to}:${fromIdVerified}`)) === 1;
     const blockedBySender = (await redis.exists(`block:${fromIdVerified}:${to}`)) === 1;
 
@@ -108,8 +112,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ---- Nachricht in DB speichern (nur wenn keine Blockierung) ----
-    // Wir speichern zusätzlich die sender-id und sender-nickname für Integrität.
+    // ---- Nachricht in DB speichern ----
     const { error } = await supabaseAdmin.from("private_messages").insert({
       from_nickname: fromNickname,
       from_id: fromIdVerified,

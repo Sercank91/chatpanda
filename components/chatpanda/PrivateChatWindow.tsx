@@ -27,7 +27,6 @@ export default function PrivateChatWindow({
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const [cooldownUntil, setCooldownUntil] = useState<number>(0);
-  const [tick, setTick] = useState(0);
 
   // Nickname laden
   useEffect(() => {
@@ -92,17 +91,6 @@ export default function PrivateChatWindow({
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
-
-  // Countdown re-render
-  useEffect(() => {
-    let id: number | undefined;
-    if (cooldownUntil > Date.now()) {
-      id = window.setInterval(() => setTick((t) => t + 1), 1000);
-    }
-    return () => {
-      if (id) clearInterval(id);
-    };
-  }, [cooldownUntil]);
 
   async function handleSend() {
     if (!input.trim() || !myNickname || !user) return;
