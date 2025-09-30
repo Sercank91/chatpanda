@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 import type { Message } from "@/types/message";
 import { createGlobalSystemMessage } from "@/lib/systemMessage";
+import { Shield } from "lucide-react";
+
 
 type Props = { initial?: Message[]; blockedUsers?: string[] };
 
@@ -81,13 +83,23 @@ export default function ChatFeed({ initial = [], blockedUsers = [] }: Props) {
   return (
     <div className="space-y-3">
       {visibleMessages.map((m) => {
-        if (m.type === "system" || m.username === "System") {
-          return (
-            <div key={m.id} className="p-2 rounded bg-gray-900/70 text-yellow-300 italic">
-              {m.content}
-            </div>
-          );
-        }
+		if (m.type === "system" || m.username === "System") {
+		  return (
+			<div
+			  key={m.id}
+			  className="p-2 rounded bg-gray-900/70 text-yellow-300 italic"
+			>
+			  <div className="text-xs opacity-70 flex items-center gap-2 mb-1">
+				{new Date(m.created_at).toLocaleTimeString()} •{" "}
+				<span className="flex items-center gap-1 font-semibold text-yellow-400">
+				  <Shield size={14} /> System
+				</span>
+			  </div>
+			  <div>{m.content}</div>
+			</div>
+		  );
+		}
+
 
         return (
           <div key={m.id} className="rounded-md bg-gray-900/70 p-3">
