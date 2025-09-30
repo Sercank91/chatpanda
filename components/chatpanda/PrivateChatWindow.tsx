@@ -37,11 +37,13 @@ export default function PrivateChatWindow({
   }, []);
 
   // Initial Nachrichten
-  useEffect(() => {
-    if (initialMessages.length > 0) {
-      setMessages(initialMessages.map((m) => ({ ...m, type: "user" })));
-    }
-  }, [initialMessages]);
+useEffect(() => {
+  if (initialMessages.length > 0) {
+    setMessages(initialMessages.map((m) => ({ ...m, type: "user" })));
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []); // 👈 leeres Dependency-Array
+
 
   // Realtime Subscription
   useEffect(() => {
